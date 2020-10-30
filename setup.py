@@ -10,6 +10,7 @@ setup(
     author_email='',
     description='',
     install_requires=[
-        'psutil'
+        'psutil',
+        'pytest'
     ]
 )
