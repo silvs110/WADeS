@@ -1,6 +1,6 @@
 import copy
 import datetime
-
+import time
 
 import psutil
 
@@ -153,8 +153,11 @@ class Application:
         open_files = process.open_files()
         memory_info = process.memory_info()
         child_process_count = len(process.children())
-        cpu_percentage = process.cpu_percent()
         username = process.username()
+        process.cpu_percent()
+
+        time.sleep(0.1) # wait for cpu_percent to return a meaningful value.
+        cpu_percentage = process.cpu_percent()
 
         self.add_open_files(open_files=open_files)
         self.__memory_usages.append(memory_info.rss)

@@ -204,3 +204,22 @@ def test_add_open_files() -> None:
         except OSError:
             continue
     print("Number of processes checked: " + str(number_of_processes_checked))
+
+
+def test_cpu_percent_value_when_adding_process_object_to_application_profile() -> None:
+    """
+    Test that getting cpu_percent when adding processes to an application profile is not always 0.0
+    """
+    processes = psutil.process_iter()
+    number_of_ps_with_non_zero_cpu_usage = 0  # Some applications may have 0.0 of cpu usage
+    for process in processes:
+        application = Application("Some application")
+        try:
+            application.add_new_information_from_process_object(process=process,
+                                                                data_retrieval_timestamp=datetime.datetime.now())
+        except (psutil.NoSuchProcess, psutil.ZombieProcess, psutil.AccessDenied):
+            continue
+
+        if all(cpu_percentage >= 0.0 for cpu_percentage in application.get_cpu_percentages()):
+            number_of_ps_with_non_zero_cpu_usage += 1
+    assert number_of_ps_with_non_zero_cpu_usage > 0
