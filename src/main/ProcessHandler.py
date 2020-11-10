@@ -6,7 +6,7 @@ from typing import Dict, List, Set
 
 import psutil
 
-from src.main.Application import Application
+from src.main.AppProfile import AppProfile
 from src.main.ProcessAttribute import ProcessAttribute
 from src.utils.error_messages import expected_type_but_received_message, expected_application_message
 
@@ -17,31 +17,31 @@ class ProcessHandler:
         """
         Abstracts the object that handles processes running in the system.
         """
-        self.__registered_applications = dict()
+        self.__registered_app_profiles = dict()
         self.__previous_retrieval_time = None
         self.__attrs_to_retrieve = [enum.name for enum in ProcessAttribute if enum.name != 'children_count']
 
-    def get_registered_applications_as_dict(self) -> Dict[str, Application]:
+    def get_registered_app_profiles_as_dict(self) -> Dict[str, AppProfile]:
         """
-        Gets the registered applications as a dictionary.
+        Gets the registered AppProfiles as a dictionary.
         Format:
             {
-                application_name: application_object,
-                application_name_2: application_object_2,
+                application_name: app_profile_1,
+                application_name_2: app_profile_2,
                 ...
             }
-        :return: the registered applications as a dictionary.
-        :rtype: Dict[str, Application]
+        :return: the registered AppProfiles as a dictionary.
+        :rtype: Dict[str, AppProfile]
         """
-        return copy.deepcopy(self.__registered_applications)
+        return copy.deepcopy(self.__registered_app_profiles)
 
-    def get_registered_applications_list(self) -> List[Application]:
+    def get_registered_app_profiles_list(self) -> List[AppProfile]:
         """
-        Gets the registered applications as a list.
-        :return: the registered applications as a list.
-        :rtype: List[Application]
+        Gets the registered AppProfiles as a list.
+        :return: the registered AppProfiles as a list.
+        :rtype: List[AppProfile]
         """
-        return list(self.__registered_applications.values())
+        return list(self.__registered_app_profiles.values())
 
     def get_registered_application_names(self) -> Set[str]:
         """
@@ -49,7 +49,7 @@ class ProcessHandler:
         :return: the name of the registered applications.
         :rtype: Set[str]
         """
-        return set(self.__registered_applications.keys())
+        return set(self.__registered_app_profiles.keys())
 
     def __collect_running_processes_and_group_by_application(self) -> Dict[str, list]:
         """
@@ -122,10 +122,10 @@ class ProcessHandler:
             if process_name != application_name:
                 raise ValueError(expected_application_message.format(application_name, process_name))
 
-            if process_name not in self.__registered_applications.keys():
-                self.__registered_applications[process_name] = Application(process_name=process_name)
+            if process_name not in self.__registered_app_profiles.keys():
+                self.__registered_app_profiles[process_name] = AppProfile(application_name=process_name)
 
-            app_profile: Application = self.__registered_applications[process_name]
+            app_profile = self.__registered_app_profiles[process_name]
             rss_memory = process[ProcessAttribute.memory_info.name].rss
             children_count = process[ProcessAttribute.children_count.name]
             users = {process[ProcessAttribute.username.name]}
@@ -138,7 +138,7 @@ class ProcessHandler:
 
     def collect_running_processes_information(self) -> None:
         """
-        Collects running process information. To get the information call get_registered_applications_as_dict.
+        Collects running process information. To get the information call get_registered_app_profiles_as_dict.
         """
         app_name_to_processes_map = self.__collect_running_processes_and_group_by_application()
         for app_name, processes in app_name_to_processes_map.items():
