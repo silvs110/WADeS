@@ -193,7 +193,10 @@ def test_add_open_files() -> None:
             process_open_files = process.open_files()
             application.add_open_files(process_open_files)
             application_open_files = application.get_open_files()
-            assert (len(process_open_files) == len(application_open_files.keys()))
+            assert len(process_open_files) >= len(application_open_files.keys()), \
+                """The length of expected open files is not equal nor larger than actual open files."
+                    "\nProcess_open_files: {}\n Application open files: {}""".format(process_open_files,
+                                                                                     application_open_files)
 
             for open_file in process_open_files:
                 assert open_file.path in application_open_files
