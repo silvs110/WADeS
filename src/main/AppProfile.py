@@ -7,20 +7,20 @@ import psutil
 from src.utils.error_messages import expected_type_but_received_message
 from typing import Union
 
-class Application:
+class AppProfile:
 
-    def __init__(self, process_name: str) -> None:
+    def __init__(self, application_name: str) -> None:
         """
-        Abstracts the Application past and current usages.
-        :raises TypeError if process is not of type psutil.Process.
-        :param process_name: the information about a process associated to an application.
-        :type process_name: str
+        Abstracts the Application Profile past and current usages.
+        :raises TypeError if application_name is not of type 'str'.
+        :param application_name: the name of the application.
+        :type application_name: str
         """
-        if not (isinstance(process_name, str)):
-            raise TypeError(expected_type_but_received_message.format("str", "process_name", process_name))
+        if not (isinstance(application_name, str)):
+            raise TypeError(expected_type_but_received_message.format("application_name", "str", application_name))
 
         self.__object_creation_timestamp = datetime.datetime.now()
-        self.__name = process_name
+        self.__name = application_name
         self.__memory_usages = list()  # this is in bytes
         self.__cpu_percent_usages = list()
         self.__open_files = dict()
@@ -105,7 +105,7 @@ class Application:
         """
         return f"Application: {self.__name}"
 
-    def __eq__(self, other: Union["Application", str]) -> bool:
+    def __eq__(self, other: Union["AppProfile", str]) -> bool:
         """
         Overloads the == operator. Two applications are equal if they have the same name.
         :param other: the other application to compare.
@@ -113,11 +113,11 @@ class Application:
         :return: True if the two applications have the same name, False otherwise.
         :rtype: bool
         """
-        if not isinstance(other, (Application, str)):
+        if not isinstance(other, (AppProfile, str)):
             return False
         return self.__name == other or (hasattr(other, "name") and self.__name == other.name)
 
-    def __ne__(self, other: Union["Application", str]) -> bool:
+    def __ne__(self, other: Union["AppProfile", str]) -> bool:
         """
         Overloads the != operator. Two applications are equal if they have the same name.
         :param other: the other application to compare.
@@ -141,12 +141,12 @@ class Application:
         :type data_retrieval_timestamp: datetime.datetime
         """
         if not (isinstance(process, psutil.Process)):
-            raise TypeError(expected_type_but_received_message.format("psutil.Process", "process", process))
+            raise TypeError(expected_type_but_received_message.format("process", "psutil.Process", process))
         if not (isinstance(data_retrieval_timestamp, datetime.datetime)):
-            raise TypeError(expected_type_but_received_message.format("datetime.datetime", "data_retrieval_timestamp",
+            raise TypeError(expected_type_but_received_message.format("data_retrieval_timestamp", "datetime.datetime",
                                                                       data_retrieval_timestamp))
         if data_retrieval_timestamp.replace(tzinfo=None) > datetime.datetime.now():
-            raise ValueError("Argument data_retrieval_timestamp cannot be newer than current time. Value receive: %s"
+            raise ValueError("Argument data_retrieval_timestamp cannot be newer than current time. Value receive: {}"
                              .format(data_retrieval_timestamp))
 
         # Get info from the process object. One of the following calls may raise an Error (OS, AccessDenied, etc).
@@ -193,18 +193,18 @@ class Application:
         :type data_retrieval_timestamp: datetime.datetime
         """
         if not isinstance(memory_usage, int):
-            raise TypeError(expected_type_but_received_message.format("int", "memory_usages", memory_usage))
+            raise TypeError(expected_type_but_received_message.format("memory_usages", "int", memory_usage))
         if not isinstance(child_processes_count, int):
             raise TypeError(
-                expected_type_but_received_message.format("int", "child_processes_count", child_processes_count))
+                expected_type_but_received_message.format("child_processes_count", "int", child_processes_count))
         if not isinstance(users, set):
-            raise TypeError(expected_type_but_received_message.format("set", "users", users))
+            raise TypeError(expected_type_but_received_message.format("users", "set", users))
         if not isinstance(open_files, list):
-            raise TypeError(expected_type_but_received_message.format("list", "open_files", open_files))
+            raise TypeError(expected_type_but_received_message.format("open_files", "list", open_files))
         if not isinstance(cpu_percentage, float):
-            raise TypeError(expected_type_but_received_message.format("float", "cpu_percentage", cpu_percentage))
+            raise TypeError(expected_type_but_received_message.format("cpu_percentage", "float", cpu_percentage))
         if not (isinstance(data_retrieval_timestamp, datetime.datetime)):
-            raise TypeError(expected_type_but_received_message.format("datetime.datetime", "data_retrieval_timestamp",
+            raise TypeError(expected_type_but_received_message.format("data_retrieval_timestamp", "datetime.datetime",
                                                                       data_retrieval_timestamp))
         if memory_usage < 0 or child_processes_count < 0 or cpu_percentage < 0:
             raise ValueError(
@@ -230,7 +230,7 @@ class Application:
         :type open_files: list
         """
         if not isinstance(open_files, list):
-            raise TypeError(expected_type_but_received_message.format("list", "open_files", open_files))
+            raise TypeError(expected_type_but_received_message.format("open_files", "list", open_files))
 
         for open_file in open_files:
             if open_file.path not in self.__open_files:
