@@ -1,14 +1,15 @@
 import copy
 import datetime
 import time
-
 import psutil
 
-from src.utils.error_messages import expected_type_but_received_message
+from src.main import definitions
+from src.main.AppProfileAttribute import AppProfileAttribute
+from src.utils.error_messages import expected_type_but_received_message, expected_value_but_received_message
 from typing import Union
 
-class AppProfile:
 
+class AppProfile:
     def __init__(self, application_name: str) -> None:
         """
         Abstracts the Application Profile past and current usages.
@@ -57,7 +58,7 @@ class AppProfile:
         Gets the dictionary of opened files for this application.
         Format:
             {
-                file_name: ['r', 'w', 'a', 'a+', 'r+'],
+                file_name: {'r', 'w', 'a', 'a+', 'r+'},
                 ...
             }
         :return: a dictionary of opened files and the permissions.
@@ -115,7 +116,9 @@ class AppProfile:
         """
         if not isinstance(other, (AppProfile, str)):
             return False
-        return self.__name == other or (hasattr(other, "name") and self.__name == other.name)
+        elif isinstance(other, str):
+            return self.__name == other
+        return self.__name == other.__name
 
     def __ne__(self, other: Union["AppProfile", str]) -> bool:
         """
@@ -156,7 +159,7 @@ class AppProfile:
         username = process.username()
         process.cpu_percent()
 
-        time.sleep(0.1) # wait for cpu_percent to return a meaningful value.
+        time.sleep(0.1)  # wait for cpu_percent to return a meaningful value.
         cpu_percentage = process.cpu_percent()
 
         self.add_open_files(open_files=open_files)
@@ -165,7 +168,6 @@ class AppProfile:
         self.__child_processes_count.append(child_process_count)
         self.__users.add(username)
         self.__cpu_percent_usages.append(cpu_percentage)
-
 
     def add_new_information(self, memory_usage: int, child_processes_count: int, users: set, open_files: list,
                             cpu_percentage: float, data_retrieval_timestamp: datetime.datetime) -> None:
@@ -238,3 +240,125 @@ class AppProfile:
 
             if hasattr(open_file, "mode"):
                 self.__open_files[open_file.path].add(open_file.mode)
+
+    def dict_format(self) -> dict:
+        """
+        Converts the attributes of this instance of AppProfile to a dict_format object.
+        :return: the dict_format object of this instance.
+        Format:
+            {
+                app_name: "Some name",
+                date_created_timestamp: "2020-12-12 14:30:32:34.232",
+                usernames: [user_1, user_2, ...]
+                memory_infos: [2342, 23215, 31573, ...],
+                opened_files:
+                    {
+                        path_1: [permission_1, permission_2, ...],
+                        ...
+                    },
+                cpu_percents: [0.2, 13.9, ...],
+                children_counts: [1, 5, 0, 4, ...]
+                data_retrieval_timestamps: [timestamp_1, timestamp_2, ...]
+            }
+        All timestamp have 'YYYY-MM-DD HH:MM:SS:microseconds' format.
+        :rtype: dict
+        """
+        str_data_retrieval_timestamps = list()
+        for timestamp in self.__data_retrieval_timestamp:
+            str_timestamp = timestamp.strftime(definitions.datetime_format)
+            str_data_retrieval_timestamps.append(str_timestamp)
+        object_creation_timestamp = self.__object_creation_timestamp.strftime(definitions.datetime_format)
+        opened_files_dict = dict()
+
+        for file, permissions in self.__open_files.items():
+            opened_files_dict[file] = list(permissions)
+        app_attrs = {
+            AppProfileAttribute.app_name.name: self.__name,
+            AppProfileAttribute.date_created_timestamp.name: object_creation_timestamp,
+            AppProfileAttribute.memory_infos.name: self.__memory_usages,
+            AppProfileAttribute.cpu_percents.name: self.__cpu_percent_usages,
+            AppProfileAttribute.opened_files.name: opened_files_dict,
+            AppProfileAttribute.data_retrieval_timestamps.name: str_data_retrieval_timestamps,
+            AppProfileAttribute.children_counts.name: self.__child_processes_count,
+            AppProfileAttribute.usernames.name: list(self.__users)
+        }
+
+        return app_attrs
+
+    def set_value_from_dict(self, app_profile_dict: dict) -> None:
+        """
+        Set the value from dict. Any old values will be lost.
+        If app_name is passed as a key, that value is ignored.
+        :raises TypeError if app_profile_dict is not of type 'dict' or the following value does not match its required type:
+            - memory_infos -> List[int]
+            - cpu_percent -> List[float]
+            - children_count -> List[int]
+            - usernames -> List[int]
+            - opened_files -> Dict[str, List[str]]
+        :raises ValueError if app_profile_dict does not have the following keys:
+            - app_name
+            - date_created_timestamp
+            - usernames
+            - memory_infos
+            - opened_files
+            - cpu_percents
+            - children_counts
+            - data_retrieval_timestamps
+        :param app_profile_dict: the new values of the application profile.
+        Format:
+            {
+                app_name: "Some name",
+                date_created_timestamp: "2020-12-12 14:30:32:34.232",
+                usernames: [user_1, user_2, ...]
+                memory_infos: [2342, 23215, 31573, ...],
+                opened_files:
+                    {
+                        path_1: [permission_1, permission_2, ...],
+                        ...
+                    },
+                cpu_percents: [0.2, 13.9, ...],
+                children_counts: [1, 5, 0, 4, ...]
+                data_retrieval_timestamps: [timestamp_1, timestamp_2, ...]
+            }
+        All timestamp should have 'YYYY-MM-DD HH:MM:SS:microseconds' format or setting the new values will fail.
+        :type app_profile_dict: dict
+        """
+        if not isinstance(app_profile_dict, dict):
+            raise TypeError(expected_type_but_received_message.format("app_profile_dict", "dict", app_profile_dict))
+
+        app_profile_dict_keys = set(app_profile_dict.keys())
+        app_profile_attrs = {enum.name for enum in AppProfileAttribute}
+        if app_profile_attrs != app_profile_dict_keys:
+            raise ValueError(expected_value_but_received_message.format("app_profile_dict_keys", app_profile_attrs,
+                                                                        app_profile_dict_keys))
+
+        self.__object_creation_timestamp = datetime.datetime.strptime(
+            app_profile_dict[AppProfileAttribute.date_created_timestamp.name], definitions.datetime_format)
+        memory_usages = app_profile_dict[AppProfileAttribute.memory_infos.name]
+        cpu_percents = app_profile_dict[AppProfileAttribute.cpu_percents.name]
+        child_process_counts = app_profile_dict[AppProfileAttribute.children_counts.name]
+        users = app_profile_dict[AppProfileAttribute.usernames.name]
+        opened_files_from_json = app_profile_dict[AppProfileAttribute.opened_files.name]
+
+        if not (all(isinstance(rss_mem, int) for rss_mem in memory_usages) and
+                all(isinstance(cpu_percent, float) for cpu_percent in cpu_percents) and
+                all(isinstance(children_count, int) for children_count in child_process_counts) and
+                all(isinstance(user, str) for user in users) and
+                (isinstance(opened_files_from_json, dict) and
+                 all(isinstance(permissions, list) and isinstance(path, str) for path, permissions in
+                     opened_files_from_json.items()))):
+
+            raise TypeError(expected_type_but_received_message.format("app_profile_dict_values",
+                                                                      "Union[dict, str, int, 'float']",
+                                                                      app_profile_dict))
+        self.__memory_usages = memory_usages
+        self.__cpu_percent_usages = cpu_percents
+        self.__child_processes_count = child_process_counts
+        self.__users = set(users)
+
+        for file, permissions in opened_files_from_json.items():
+            self.__open_files[file] = set(permissions)
+
+        str_data_retrieval_timestamps = app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name]
+        self.__data_retrieval_timestamp = [datetime.datetime.strptime(retrieval_timestamp, definitions.datetime_format)
+                                           for retrieval_timestamp in str_data_retrieval_timestamps]
