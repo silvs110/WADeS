@@ -128,7 +128,8 @@ class ProcessHandler:
             app_profile = self.__registered_app_profiles[process_name]
             rss_memory = process[ProcessAttribute.memory_info.name].rss
             children_count = process[ProcessAttribute.children_count.name]
-            users = {process[ProcessAttribute.username.name]}
+            users = {process[ProcessAttribute.username.name]} if process[ProcessAttribute.username.name] is not None \
+                else set()
             open_files = process.get(ProcessAttribute.open_files.name, list())
             open_files = open_files if open_files is not None else list()
             cpu_percentage = process[ProcessAttribute.cpu_percent.name]

@@ -4,19 +4,26 @@ import psutil
 import pytest
 from psutil import AccessDenied
 
+from src.main import definitions
 from src.main.AppProfile import AppProfile
+from src.main.AppProfileAttribute import AppProfileAttribute
+from src.main.ProcessHandler import ProcessHandler
 
 """
 This file contains test for AppProfile class.
 Functional test for the following methods in AppProfile class:
-* __eq__
-* __ne__
-* add_new_information_from_process_object
-* add_open_files
+* __eq__()
+* __ne__()
+* add_new_information_from_process_object()
+* add_open_files()
+* dict_format()
+
 Input validation test:
-* add_new_information_from_process_object
-* add_open_files
-* add_new_information
+* add_new_information_from_process_object()
+* add_open_files()
+* add_new_information()
+* set_value_from_dict()
+
 """
 
 
@@ -226,3 +233,54 @@ def test_cpu_percent_value_when_adding_process_object_to_application_profile() -
         if all(cpu_percentage >= 0.0 for cpu_percentage in app_profile.get_cpu_percentages()):
             number_of_ps_with_non_zero_cpu_usage += 1
     assert number_of_ps_with_non_zero_cpu_usage > 0
+
+
+def test_dict_format() -> None:
+    """
+    Test dict_format() for an application profile.
+    """
+    expected_app_profile_attrs = {enum.name for enum in AppProfileAttribute}
+    process_handler = ProcessHandler()
+    process_handler.collect_running_processes_information()
+    registered_applications = process_handler.get_registered_app_profiles_list()
+    for registered_app in registered_applications:
+        registered_app_dict = registered_app.dict_format()
+
+        # Check that it returns a dictionary and have the required keys.
+        assert isinstance(registered_app_dict, dict)
+        actual_app_profile_attrs = set(registered_app_dict.keys())
+        assert expected_app_profile_attrs == actual_app_profile_attrs
+
+        # Check that usernames and permissions (values in open_files) attributes are not sets.
+        usernames = registered_app_dict[AppProfileAttribute.usernames.name]
+        assert isinstance(usernames, list)
+        open_files = registered_app_dict[AppProfileAttribute.opened_files.name]
+        for permissions in open_files.values():
+            assert isinstance(permissions, list)
+
+        # Check that all datetime values are in string format. Will throw an error if it is not in the right format.
+        object_created_timestamp = registered_app_dict[AppProfileAttribute.date_created_timestamp.name]
+        datetime.datetime.strptime(object_created_timestamp, definitions.datetime_format)
+        retrieval_timestamps = registered_app_dict[AppProfileAttribute.data_retrieval_timestamps.name]
+        for retrieval_timestamp in retrieval_timestamps:
+            datetime.datetime.strptime(retrieval_timestamp, definitions.datetime_format)
+
+
+# noinspection PyTypeChecker
+def test_set_app_profile_value_from_dict_input_validation() -> None:
+    """
+    Test set_value_from_dict() with input validation.
+    """
+    app_profile = AppProfile("Some name")
+
+    # None type as input
+    with pytest.raises(TypeError):
+        app_profile.set_value_from_dict(None)
+
+    # String as input
+    with pytest.raises(TypeError):
+        app_profile.set_value_from_dict("DS")
+
+    # Empty dictionary as input. No required keys are used.
+    with pytest.raises(ValueError):
+        app_profile.set_value_from_dict(dict())
