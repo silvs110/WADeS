@@ -6,8 +6,8 @@ from typing import Dict, List, Set
 
 import psutil
 
-from src.main.AppProfile import AppProfile
-from src.main.ProcessAttribute import ProcessAttribute
+from src.main.common.AppProfile import AppProfile
+from src.main.common.ProcessAttribute import ProcessAttribute
 from src.utils.error_messages import expected_type_but_received_message, expected_application_message
 
 

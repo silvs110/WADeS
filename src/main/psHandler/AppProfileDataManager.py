@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Dict, Union
 
 import paths
-from src.main.AppProfile import AppProfile
+from src.main.common.AppProfile import AppProfile
 from src.utils.error_messages import expected_type_but_received_message
 
 

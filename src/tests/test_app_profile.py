@@ -1,17 +1,16 @@
 import datetime
-from pprint import pprint
 
 import psutil
 import pytest
 from psutil import AccessDenied
 
-
-from src.main import definitions
-from src.main.AppProfile import AppProfile
-from src.main.AppProfileAttribute import AppProfileAttribute
-from src.main.AppProfileDataManager import AppProfileDataManager
-from src.main.ProcessHandler import ProcessHandler
 from paths import SAMPLE_APP_PROF_DATA_PATH
+import config
+from src.main.common.AppProfile import AppProfile
+from src.main.common.AppProfileAttribute import AppProfileAttribute
+from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
+from src.main.psHandler.ProcessHandler import ProcessHandler
+from src.tests.test_helpers import check_app_profile_has_the_right_format
 
 """
 This file contains test for AppProfile class.
@@ -252,7 +251,6 @@ def test_dict_format() -> None:
     """
     Test dict_format() for an application profile. It checks that the returned value is in the right format.
     """
-    expected_app_profile_attrs = {enum.name for enum in AppProfileAttribute}
     process_handler = ProcessHandler()
     process_handler.collect_running_processes_information()
     registered_applications = process_handler.get_registered_app_profiles_list()
@@ -263,10 +261,10 @@ def test_dict_format() -> None:
                                                app_profile=registered_app_dict)
         # Check that all datetime values are in string format. Will throw an error if it is not in the right format.
         object_created_timestamp = registered_app_dict[AppProfileAttribute.date_created_timestamp.name]
-        datetime.datetime.strptime(object_created_timestamp, definitions.datetime_format)
+        datetime.datetime.strptime(object_created_timestamp, config.datetime_format)
         retrieval_timestamps = registered_app_dict[AppProfileAttribute.data_retrieval_timestamps.name]
         for retrieval_timestamp in retrieval_timestamps:
-            datetime.datetime.strptime(retrieval_timestamp, definitions.datetime_format)
+            datetime.datetime.strptime(retrieval_timestamp, config.datetime_format)
 
 
 # noinspection PyTypeChecker
@@ -371,51 +369,10 @@ def test_get_latest_retrieved_data() -> None:
         AppProfileAttribute.opened_files.name: {
             last_retrieved_timestamp:
                 app_profile_dict[AppProfileAttribute.opened_files.name][last_retrieved_timestamp]
-        },
+            },
         AppProfileAttribute.data_retrieval_timestamps.name:
             app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name][-latest_retrieved_data_size:]
     }
     actual_latest_app_profile_data = app_profile.get_latest_retrieved_data()
 
     assert actual_latest_app_profile_data == expected_latest_app_profile_data
-
-
-# HELPER METHODS
-
-# noinspection DuplicatedCode
-def check_app_profile_has_the_right_format(app_name: str, app_profile: dict) -> None:
-    """
-    Helper method that checks that the app_profile dictionary is in the right format.
-    For more info of the expected format:
-        src.main.common.AppProfile.AppProfile.dict_format()
-    :param app_name: The name of the application.
-    :type app_name: str
-    :param app_profile: The app_profile to check.
-    :type app_profile: dict
-    """
-    app_profile_name = app_profile[AppProfileAttribute.app_name.name]
-    assert app_name == app_profile_name
-
-    app_profile_creation_timestamp = app_profile[AppProfileAttribute.date_created_timestamp.name]
-    assert isinstance(app_profile_creation_timestamp, str)
-
-    app_profile_retrieval_times = app_profile[AppProfileAttribute.data_retrieval_timestamps.name]
-    assert all(isinstance(timestamp, str) for timestamp in app_profile_retrieval_times)
-
-    memory_usages = app_profile[AppProfileAttribute.memory_infos.name]
-    assert all(isinstance(rss_mem, int) for rss_mem in memory_usages)
-
-    cpu_percents = app_profile[AppProfileAttribute.cpu_percents.name]
-    assert all(isinstance(cpu_percent, float) for cpu_percent in cpu_percents)
-
-    child_process_counts = app_profile[AppProfileAttribute.children_counts.name]
-    assert all(isinstance(children_count, int) for children_count in child_process_counts)
-
-    users = app_profile[AppProfileAttribute.usernames.name]
-    assert all(isinstance(user, str) for user in users)
-
-    opened_files = app_profile[AppProfileAttribute.opened_files.name]
-    assert isinstance(opened_files, dict)
-    assert all(isinstance(files, dict) and isinstance(timestamp, str) and isinstance(file, str) and isinstance(
-        permissions, list) for timestamp, files in
-               opened_files.items() for file, permissions in files.items())
