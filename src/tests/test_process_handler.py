@@ -1,5 +1,5 @@
-from src.main.AppProfile import AppProfile
-from src.main.ProcessHandler import ProcessHandler
+from src.main.common.AppProfile import AppProfile
+from src.main.psHandler.ProcessHandler import ProcessHandler
 
 """
 This file contains test for ProcessHandler class.

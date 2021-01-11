@@ -1,13 +1,12 @@
 import pytest
 
 
-from src.main.AppProfile import AppProfile
-from src.main.AppProfileAttribute import AppProfileAttribute
-from src.main.AppProfileDataManager import AppProfileDataManager
-from src.main.ProcessHandler import ProcessHandler
 from paths import SAMPLE_APP_PROF_DATA_PATH
-from src.tests.test_app_profile import check_app_profile_has_the_right_format
-
+from src.main.common.AppProfile import AppProfile
+from src.main.common.AppProfileAttribute import AppProfileAttribute
+from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
+from src.main.psHandler.ProcessHandler import ProcessHandler
+from src.tests.test_helpers import check_app_profile_has_the_right_format
 
 """
 Contains tests for AppProfileDataManager class

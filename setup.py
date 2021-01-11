@@ -11,6 +11,7 @@ setup(
     description='',
     install_requires=[
         'psutil',
-        'pytest'
+        'pytest',
+        'idna'
     ]
 )
