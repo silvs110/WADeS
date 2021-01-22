@@ -27,12 +27,12 @@ class AppProfile:
         self.__open_files = dict()
         self.__data_retrieval_timestamp = list()
         self.__child_processes_count = list()
-        self.__users = set()
+        self.__users = list()
 
     def get_application_name(self) -> str:
         """
         Gets the name of the application.
-        :return: the name of the application.
+        :return: The name of the application.
         :rtype: str
         """
         return self.__name
@@ -40,7 +40,7 @@ class AppProfile:
     def get_object_creation_timestamp(self) -> datetime.datetime:
         """
         Gets the timestamp this object was created.
-        :return: the timestamp this object was created.
+        :return: The timestamp this object was created.
         :rtype: datetime.datetime
         """
         return self.__object_creation_timestamp
@@ -48,7 +48,7 @@ class AppProfile:
     def get_memory_usages(self) -> list:
         """
         Gets the memory usages for this application. It will return all recorded memory usages.
-        :return: the past memory usages for this application.
+        :return: The past memory usages for this application.
         :rtype: list
         """
         return copy.deepcopy(self.__memory_usages)
@@ -57,11 +57,14 @@ class AppProfile:
         """
         Gets the dictionary of opened files for this application.
         Format:
-            {
-                file_name: {'r', 'w', 'a', 'a+', 'r+'},
-                ...
-            }
-        :return: a dictionary of opened files and the permissions.
+                {
+                    timestamp_1 : {
+                        path_1: [permission_1, permission_2, ...],
+                        ...
+                    },
+                    ...
+                }
+        :return: A dictionary of opened files and the permissions.
         :rtype: dict
         """
         return copy.deepcopy(self.__open_files)
@@ -69,7 +72,7 @@ class AppProfile:
     def get_data_retrieval_timestamp(self) -> list:
         """
         Gets a list of all the retrieval times.
-        :return: list of retrieval times.
+        :return: A list of retrieval times.
         :rtype: list
         """
         return copy.deepcopy(self.__data_retrieval_timestamp)
@@ -77,23 +80,23 @@ class AppProfile:
     def get_child_processes_count(self) -> list:
         """
         Gets a history of all the child processes count.
-        :return: a list of all the child processes count.
+        :return: A list of all the child processes count.
         :rtype: list
         """
         return copy.deepcopy(self.__child_processes_count)
 
-    def get_users(self) -> set:
+    def get_users(self) -> list:
         """
         Gets the users that have run this application.
-        :return: the set of users that have run this application.
-        :rtype: set
+        :return: The collection of users that have run this application.
+        :rtype: list
         """
         return copy.deepcopy(self.__users)
 
     def get_cpu_percentages(self) -> list:
         """
         Gets the history of cpu usages for this application.
-        :return: the history of the cpu udages for this application.
+        :return: The history of the cpu usages for this application.
         :rtype: list
         """
         return copy.deepcopy(self.__cpu_percent_usages)
@@ -101,7 +104,7 @@ class AppProfile:
     def __str__(self) -> str:
         """
         Overload of the method __str__ to display the information about the application in a more readable format.
-        :return: the information about the application in a more readable format
+        :return: The information about the application in a more readable format.
         :rtype: str
         """
         return f"Application: {self.__name}"
@@ -109,7 +112,7 @@ class AppProfile:
     def __eq__(self, other: Union["AppProfile", str]) -> bool:
         """
         Overloads the == operator. Two applications are equal if they have the same name.
-        :param other: the other application to compare.
+        :param other: The other application to compare.
         :type other: Union["Application", str]
         :return: True if the two applications have the same name, False otherwise.
         :rtype: bool
@@ -123,7 +126,7 @@ class AppProfile:
     def __ne__(self, other: Union["AppProfile", str]) -> bool:
         """
         Overloads the != operator. Two applications are equal if they have the same name.
-        :param other: the other application to compare.
+        :param other: The other application to compare.
         :type other: Union["Application", str]
         :return: True if the two applications don't have the same name, False otherwise.
         :rtype: bool
@@ -138,9 +141,9 @@ class AppProfile:
         :raises TypeError if process is not of type psutil.Process or data_retrieval_timestamp is not of type
             datetime.datetime.
         :raises ValueError if data_retrieval_timestamp is newer than current time.
-        :param process: information about the specific process.
+        :param process: Information about the specific process.
         :type process: psutil.Process
-        :param data_retrieval_timestamp: the time the data was retrieved.
+        :param data_retrieval_timestamp: The time the data was retrieved.
         :type data_retrieval_timestamp: datetime.datetime
         """
         if not (isinstance(process, psutil.Process)):
@@ -162,14 +165,14 @@ class AppProfile:
         time.sleep(0.1)  # wait for cpu_percent to return a meaningful value.
         cpu_percentage = process.cpu_percent()
 
-        self.add_open_files(open_files=open_files)
+        self.add_open_files(open_files=open_files, data_retrieval_timestamp=data_retrieval_timestamp)
         self.__memory_usages.append(memory_info.rss)
         self.__data_retrieval_timestamp.append(data_retrieval_timestamp)
         self.__child_processes_count.append(child_process_count)
-        self.__users.add(username)
+        self.__users.extend(username)
         self.__cpu_percent_usages.append(cpu_percentage)
 
-    def add_new_information(self, memory_usage: int, child_processes_count: int, users: set, open_files: list,
+    def add_new_information(self, memory_usage: int, child_processes_count: int, users: list, open_files: list,
                             cpu_percentage: float, data_retrieval_timestamp: datetime.datetime) -> None:
         """
         Adds new information about this application.
@@ -179,19 +182,19 @@ class AppProfile:
             - open_files is not of type 'list'
             - cpu_percentage is not of type 'float'
             - data_retrieval_timestamp is not of type 'datetime.datetime'
-        :raises ValueError if either memory_usage, child_processes_count or cpu_percentage has negative value.
-            Or if data_retrieval_timestamp is newer than current time.
-        :param memory_usage: the memory usage of this application.
+        :raises ValueError if either memory_usage, child_processes_count or cpu_percentage has negative value,
+                or if data_retrieval_timestamp is newer than current time.
+        :param memory_usage: The memory usage of this application.
         :type memory_usage: int
-        :param child_processes_count: the number of child process registered at the moment.
+        :param child_processes_count: The number of child process registered at the moment.
         :type child_processes_count: int
-        :param users: the users that are running this application.
-        :type users: set
-        :param open_files: the open files to add.
+        :param users: The users that are running this application.
+        :type users: list
+        :param open_files: The open files to add.
         :type open_files: list
-        :param cpu_percentage: current CPU usage for this application.
+        :param cpu_percentage: Current CPU usage for this application.
         :type cpu_percentage: float
-        :param data_retrieval_timestamp: the time the data was retrieved.
+        :param data_retrieval_timestamp: The time the data was retrieved.
         :type data_retrieval_timestamp: datetime.datetime
         """
         if not isinstance(memory_usage, int):
@@ -199,8 +202,8 @@ class AppProfile:
         if not isinstance(child_processes_count, int):
             raise TypeError(
                 expected_type_but_received_message.format("child_processes_count", "int", child_processes_count))
-        if not isinstance(users, set):
-            raise TypeError(expected_type_but_received_message.format("users", "set", users))
+        if not isinstance(users, list):
+            raise TypeError(expected_type_but_received_message.format("users", "list", users))
         if not isinstance(open_files, list):
             raise TypeError(expected_type_but_received_message.format("open_files", "list", open_files))
         if not isinstance(cpu_percentage, float):
@@ -217,34 +220,43 @@ class AppProfile:
             raise ValueError("Argument data_retrieval_timestamp cannot be newer than current time. Value receive: %s"
                              .format(data_retrieval_timestamp))
 
-        self.add_open_files(open_files=open_files)
+        self.add_open_files(open_files=open_files, data_retrieval_timestamp=data_retrieval_timestamp)
         self.__memory_usages.append(memory_usage)
         self.__child_processes_count.append(child_processes_count)
-        self.__users.update(users)
+        self.__users.extend(users)
         self.__cpu_percent_usages.append(cpu_percentage)
         self.__data_retrieval_timestamp.append(data_retrieval_timestamp)
 
-    def add_open_files(self, open_files: list) -> None:
+    def add_open_files(self, open_files: list, data_retrieval_timestamp: datetime.datetime) -> None:
         """
         Adds the open files to the list of open files for this application.
-        :raises TypeError if open_files is not of type list.
-        :param open_files: the open files to add.
+        :raises TypeError if open_files is not of type list,
+                or if data_retrieval_timestamp is not of type datetime.datetime.
+        :param open_files: The open files to add.
         :type open_files: list
+        :param data_retrieval_timestamp: The time the data was retrieved.
+        :type data_retrieval_timestamp: datetime.datetime
         """
+
         if not isinstance(open_files, list):
             raise TypeError(expected_type_but_received_message.format("open_files", "list", open_files))
+        if not isinstance(data_retrieval_timestamp, datetime.datetime):
+            raise TypeError(expected_type_but_received_message.format("data_retrieval_timestamp", "datetime.datetime",
+                                                                      data_retrieval_timestamp))
+        last_accessed_files = dict()
 
         for open_file in open_files:
-            if open_file.path not in self.__open_files:
-                self.__open_files[open_file.path] = set()
+            if open_file.path not in last_accessed_files:
+                last_accessed_files[open_file.path] = list()
 
             if hasattr(open_file, "mode"):
-                self.__open_files[open_file.path].add(open_file.mode)
+                last_accessed_files[open_file.path].append(open_file.mode)
+        self.__open_files[data_retrieval_timestamp] = last_accessed_files
 
     def dict_format(self) -> dict:
         """
         Converts the attributes of this instance of AppProfile to a dict_format object.
-        :return: the dict_format object of this instance.
+        :return: The dict_format object of this instance.
         Format:
             {
                 app_name: "Some name",
@@ -253,7 +265,10 @@ class AppProfile:
                 memory_infos: [2342, 23215, 31573, ...],
                 opened_files:
                     {
-                        path_1: [permission_1, permission_2, ...],
+                        timestamp_1 : {
+                            path_1: [permission_1, permission_2, ...],
+                            ...
+                        },
                         ...
                     },
                 cpu_percents: [0.2, 13.9, ...],
@@ -270,8 +285,8 @@ class AppProfile:
         object_creation_timestamp = self.__object_creation_timestamp.strftime(definitions.datetime_format)
         opened_files_dict = dict()
 
-        for file, permissions in self.__open_files.items():
-            opened_files_dict[file] = list(permissions)
+        for timestamp, files in self.__open_files.items():
+            opened_files_dict[timestamp.strftime(definitions.datetime_format)] = files
         app_attrs = {
             AppProfileAttribute.app_name.name: self.__name,
             AppProfileAttribute.date_created_timestamp.name: object_creation_timestamp,
@@ -280,7 +295,7 @@ class AppProfile:
             AppProfileAttribute.opened_files.name: opened_files_dict,
             AppProfileAttribute.data_retrieval_timestamps.name: str_data_retrieval_timestamps,
             AppProfileAttribute.children_counts.name: self.__child_processes_count,
-            AppProfileAttribute.usernames.name: list(self.__users)
+            AppProfileAttribute.usernames.name: self.__users
         }
 
         return app_attrs
@@ -289,12 +304,13 @@ class AppProfile:
         """
         Set the value from dict. Any old values will be lost.
         If app_name is passed as a key, that value is ignored.
-        :raises TypeError if app_profile_dict is not of type 'dict' or the following value does not match its required type:
+        :raises TypeError if app_profile_dict is not of type 'dict',
+                or if the following values don't match their required type:
             - memory_infos -> List[int]
             - cpu_percent -> List[float]
             - children_count -> List[int]
-            - usernames -> List[int]
-            - opened_files -> Dict[str, List[str]]
+            - usernames -> List[str]
+            - opened_files -> Dict[str, Dict[str, List[str]]]
         :raises ValueError if app_profile_dict does not have the following keys:
             - app_name
             - date_created_timestamp
@@ -313,7 +329,10 @@ class AppProfile:
                 memory_infos: [2342, 23215, 31573, ...],
                 opened_files:
                     {
-                        path_1: [permission_1, permission_2, ...],
+                        timestamp_1 : {
+                            path_1: [permission_1, permission_2, ...],
+                            ...
+                        },
                         ...
                     },
                 cpu_percents: [0.2, 13.9, ...],
@@ -344,20 +363,21 @@ class AppProfile:
                 all(isinstance(cpu_percent, float) for cpu_percent in cpu_percents) and
                 all(isinstance(children_count, int) for children_count in child_process_counts) and
                 all(isinstance(user, str) for user in users) and
-                (isinstance(opened_files_from_json, dict) and
-                 all(isinstance(permissions, list) and isinstance(path, str) for path, permissions in
-                     opened_files_from_json.items()))):
-
+                (isinstance(opened_files_from_json, dict) and all(
+                    isinstance(files, dict) and isinstance(timestamp, str) and isinstance(file, str) and isinstance(
+                        permissions, list) for timestamp, files in
+                    opened_files_from_json.items() for file, permissions in files.items()))):
             raise TypeError(expected_type_but_received_message.format("app_profile_dict_values",
                                                                       "Union[dict, str, int, 'float']",
                                                                       app_profile_dict))
         self.__memory_usages = memory_usages
+
         self.__cpu_percent_usages = cpu_percents
         self.__child_processes_count = child_process_counts
-        self.__users = set(users)
+        self.__users = users
 
-        for file, permissions in opened_files_from_json.items():
-            self.__open_files[file] = set(permissions)
+        for timestamp, files in opened_files_from_json.items():
+            self.__open_files[datetime.datetime.strptime(timestamp, definitions.datetime_format)] = files
 
         str_data_retrieval_timestamps = app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name]
         self.__data_retrieval_timestamp = [datetime.datetime.strptime(retrieval_timestamp, definitions.datetime_format)
