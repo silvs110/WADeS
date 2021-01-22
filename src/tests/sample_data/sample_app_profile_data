@@ -1,0 +1,36 @@
+{
+"common_case_app": {
+    "app_name": "common_case_app",
+    "date_created_timestamp": "2021-01-d 23:32:57:013615",
+    "memory_infos": [348672000, 348672000, 348672000, 348672000, 348672000],
+    "cpu_percents": [3.2, 2.6, 2.7, 3.7, 3.3],
+    "opened_files": {
+                "2021-01-d 23:32:55:053519": {
+                    "/home/silvia/snap/sample_app/logger.log": ["a+", "a+"],
+                    "/home/silvia/snap/sample_app/file_3": ["r+", "r+"],
+                    "/home/silvia/snap/sample_app/file_2": ["r+", "r+"],
+                    "/home/silvia/snap/sample_app/file_1": ["r+"],
+                    "/home/silvia/snap/sample_app/file_4": ["r+"],
+                    "/home/silvia/snap/sample_app/file_5": ["r+"]
+                }, "2021-01-d 23:32:57:147145": {
+                    "/home/silvia/snap/sample_app/logger.log": ["a+", "a+"],
+                    "/home/silvia/snap/sample_app/file_3": ["r+", "r+"],
+                    "/home/silvia/snap/sample_app/file_2": ["r+", "r+"]
+                }, "2021-01-d 23:32:59:271170": {
+                    "/home/silvia/snap/sample_app/logger.log": ["a+", "a+"],
+                    "/home/silvia/snap/sample_app/file_3": ["r+", "r+"],
+                    "/home/silvia/snap/sample_app/file_2": ["r+", "r+"]
+                }, "2021-01-d 23:33:01:371197": {
+                    "/home/silvia/snap/sample_app/logger.log": ["a+", "a+"],
+                    "/home/silvia/snap/sample_app/file_4": ["r+", "r+"],
+                    "/home/silvia/snap/sample_app/file_1": ["r+", "r+"]
+                }, "2021-01-d 23:33:03:575118": {
+                    "/home/silvia/snap/sample_app/logger.log": ["a+", "a+"],
+                    "/home/silvia/snap/sample_app/file_3": ["r+", "r+"]
+                }
+            },
+    "data_retrieval_timestamps": ["2021-01-d 23:32:55:053519", "2021-01-d 23:32:57:147145", "2021-01-d 23:32:59:271170", "2021-01-d 23:33:01:371197", "2021-01-d 23:33:03:575118"],
+    "children_counts": [0, 0, 0, 0, 0],
+    "usernames": ["silvia", "silvia", "silvia", "silvia", "silvia"]
+    }
+}
