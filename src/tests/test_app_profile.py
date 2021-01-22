@@ -112,12 +112,12 @@ def test_add_information_with_input_validation() -> None:
 
     # Invalid type for memory_usage
     with pytest.raises(TypeError):
-        app_profile.add_new_information(memory_usage=None, child_processes_count=1, users=set(),
+        app_profile.add_new_information(memory_usage=None, child_processes_count=1, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=0.98,
                                         open_files=list())
     # Invalid type for child_processes_count
     with pytest.raises(TypeError):
-        app_profile.add_new_information(memory_usage=1, child_processes_count=None, users=set(),
+        app_profile.add_new_information(memory_usage=1, child_processes_count=None, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=0.98,
                                         open_files=list())
     # Invalid type for users
@@ -128,42 +128,42 @@ def test_add_information_with_input_validation() -> None:
 
     # Invalid type for data_retrieval_timestamp
     with pytest.raises(TypeError):
-        app_profile.add_new_information(memory_usage=1, child_processes_count=0, users=set(),
+        app_profile.add_new_information(memory_usage=1, child_processes_count=0, users=list(),
                                         data_retrieval_timestamp=None, cpu_percentage=0.98,
                                         open_files=list())
 
     # Invalid type for cpu_percentage
     with pytest.raises(TypeError):
-        app_profile.add_new_information(memory_usage=1, child_processes_count=1, users=set(),
+        app_profile.add_new_information(memory_usage=1, child_processes_count=1, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage="",
                                         open_files=list())
     # Invalid type for open_files
     with pytest.raises(TypeError):
-        app_profile.add_new_information(memory_usage=1, child_processes_count=0, users=set(),
+        app_profile.add_new_information(memory_usage=1, child_processes_count=0, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=0.98,
                                         open_files=None)
     # Negative value for memory_usage
     with pytest.raises(ValueError):
-        app_profile.add_new_information(memory_usage=-1, child_processes_count=1, users=set(),
+        app_profile.add_new_information(memory_usage=-1, child_processes_count=1, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=0.98,
                                         open_files=list())
 
     # Negative value for child_processes_count
     with pytest.raises(ValueError):
-        app_profile.add_new_information(memory_usage=1, child_processes_count=-1, users=set(),
+        app_profile.add_new_information(memory_usage=1, child_processes_count=-1, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=0.98,
                                         open_files=list())
 
     # Negative value for cpu_percentage
     with pytest.raises(ValueError):
-        app_profile.add_new_information(memory_usage=1, child_processes_count=1, users=set(),
+        app_profile.add_new_information(memory_usage=1, child_processes_count=1, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=-0.5,
                                         open_files=list())
     # data_retrieval_timestamp with value set to tomorrow
     with pytest.raises(ValueError):
         tomorrow_date = datetime.date.today() + datetime.timedelta(days=1)
         tomorrow_datetime = datetime.datetime.combine(tomorrow_date, datetime.time.min)
-        app_profile.add_new_information(memory_usage=1, child_processes_count=1, users=set(),
+        app_profile.add_new_information(memory_usage=1, child_processes_count=1, users=list(),
                                         data_retrieval_timestamp=tomorrow_datetime, cpu_percentage=-0.5,
                                         open_files=list())
 
@@ -177,12 +177,16 @@ def test_add_open_files_with_input_validation() -> None:
     # None open_files
     with pytest.raises(TypeError):
         # noinspection PyTypeChecker
-        app_profile.add_open_files(open_files=None)
+        app_profile.add_open_files(open_files=None, data_retrieval_timestamp=datetime.datetime.now())
 
     # Invalid type for open_files
     with pytest.raises(TypeError):
         # noinspection PyTypeChecker
-        app_profile.add_open_files(open_files="")
+        app_profile.add_open_files(open_files="", data_retrieval_timestamp=datetime.datetime.now())
+
+    with pytest.raises(TypeError):
+        # noinspection PyTypeChecker
+        app_profile.add_open_files(open_files=list(), data_retrieval_timestamp=None)
 
 
 def test_add_open_files() -> None:
@@ -197,9 +201,12 @@ def test_add_open_files() -> None:
         process_name = process.name()
         app_profile = AppProfile(application_name=process_name)
         try:
+            timestamp = datetime.datetime.now()
             process_open_files = process.open_files()
-            app_profile.add_open_files(process_open_files)
-            application_open_files = app_profile.get_open_files()
+            app_profile.add_open_files(open_files=process_open_files, data_retrieval_timestamp=timestamp)
+            # As we only retrieve the information once, only one key is stored in the dictionary.
+            application_open_files_with_timestamp = app_profile.get_open_files()
+            application_open_files = application_open_files_with_timestamp[timestamp]
             assert len(process_open_files) >= len(application_open_files.keys()), \
                 """The length of expected open files is not equal nor larger than actual open files."
                     "\nProcess_open_files: {}\n Application open files: {}""".format(process_open_files,
@@ -255,8 +262,10 @@ def test_dict_format() -> None:
         usernames = registered_app_dict[AppProfileAttribute.usernames.name]
         assert isinstance(usernames, list)
         open_files = registered_app_dict[AppProfileAttribute.opened_files.name]
-        for permissions in open_files.values():
-            assert isinstance(permissions, list)
+        for files in open_files.values():
+            assert isinstance(files, dict)
+            for permissions in files.values():
+                assert isinstance(permissions, list)
 
         # Check that all datetime values are in string format. Will throw an error if it is not in the right format.
         object_created_timestamp = registered_app_dict[AppProfileAttribute.date_created_timestamp.name]

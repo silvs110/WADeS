@@ -30,7 +30,7 @@ class ProcessHandler:
                 application_name_2: app_profile_2,
                 ...
             }
-        :return: the registered AppProfiles as a dictionary.
+        :return: The registered AppProfiles as a dictionary.
         :rtype: Dict[str, AppProfile]
         """
         return copy.deepcopy(self.__registered_app_profiles)
@@ -38,7 +38,7 @@ class ProcessHandler:
     def get_registered_app_profiles_list(self) -> List[AppProfile]:
         """
         Gets the registered AppProfiles as a list.
-        :return: the registered AppProfiles as a list.
+        :return: The registered AppProfiles as a list.
         :rtype: List[AppProfile]
         """
         return list(self.__registered_app_profiles.values())
@@ -46,7 +46,7 @@ class ProcessHandler:
     def get_registered_application_names(self) -> Set[str]:
         """
         Gets the name of the registered applications.
-        :return: the name of the registered applications.
+        :return: The name of the registered applications.
         :rtype: Set[str]
         """
         return set(self.__registered_app_profiles.keys())
@@ -54,7 +54,7 @@ class ProcessHandler:
     def __collect_running_processes_and_group_by_application(self) -> Dict[str, list]:
         """
         Collect the running processes information and group them by application name.
-        :return: a map with the application name and its running processes.
+        :return: A map with the application name and its running processes.
             Format:
                 {
                     application_name_1: [process_dict_1, process_dict_2],
@@ -75,7 +75,7 @@ class ProcessHandler:
     def __get_process_info_as_list_of_dict(self) -> List[dict]:
         """
         Gets the process information as a list of dictionaries.
-        :return: a list of dictionaries that contains information about the processes.
+        :return: A list of dictionaries that contains information about the processes.
         :rtype: List[dict]
         """
         processes_list = list()
@@ -104,9 +104,9 @@ class ProcessHandler:
         Adds the process information to its respective application profile.
         :raises TypeError if application_name is not of type 'str' or application_processes is not pf type 'List[dict]'.
         :raises ValueError if at least one of the processes' names is not equal to the application_name provided.
-        :param application_name: the name of the application.
+        :param application_name: The name of the application.
         :type application_name: str
-        :param application_processes: the list of processes associated to the application.
+        :param application_processes: The list of processes associated to the application.
         :type application_processes: List[dict]
         """
         if not isinstance(application_name, str):
@@ -128,8 +128,8 @@ class ProcessHandler:
             app_profile = self.__registered_app_profiles[process_name]
             rss_memory = process[ProcessAttribute.memory_info.name].rss
             children_count = process[ProcessAttribute.children_count.name]
-            users = {process[ProcessAttribute.username.name]} if process[ProcessAttribute.username.name] is not None \
-                else set()
+            users = [process[ProcessAttribute.username.name]] if process[ProcessAttribute.username.name] is not None \
+                else list()
             open_files = process.get(ProcessAttribute.open_files.name, list())
             open_files = open_files if open_files is not None else list()
             cpu_percentage = process[ProcessAttribute.cpu_percent.name]
