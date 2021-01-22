@@ -382,3 +382,120 @@ class AppProfile:
         str_data_retrieval_timestamps = app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name]
         self.__data_retrieval_timestamp = [datetime.datetime.strptime(retrieval_timestamp, definitions.datetime_format)
                                            for retrieval_timestamp in str_data_retrieval_timestamps]
+
+    def get_latest_retrieved_data_size(self) -> int:
+        """
+        Get the latest retrieved data batch size.
+        :return: The latest retrieved data batch size.
+        :rtype: int
+        """
+        if len(self.__data_retrieval_timestamp) <= 0:
+            return 0
+        last_retrieved_data_timestamp = self.__data_retrieval_timestamp[-1]
+        return self.__data_retrieval_timestamp.count(last_retrieved_data_timestamp)
+
+    def get_latest_retrieved_data(self) -> dict:
+        """
+        Get the latest retrieved data as a dictionary. The returned value can be be used for data modelling.
+        Note: this method is complementary to `get_previously_retrieved_data`.
+        :return: The latest retrieved data in the following format:
+            {
+                app_name: "Some name",
+                data_retrieval_timestamps: [timestamp_1, timestamp_2, ...],
+                usernames: [user_1, user_2, ...]
+                memory_infos: [2342, 23215, 31573, ...],
+                opened_files:
+                    {
+                        timestamp_1 : {
+                            path_1: [permission_1, permission_2, ...],
+                            ...
+                        },
+                        ...
+                    },
+                cpu_percents: [0.2, 13.9, ...],
+                children_counts: [1, 5, 0, 4, ...]
+            }
+        :rtype: dict
+        """
+
+        if len(self.__data_retrieval_timestamp) <= 0:
+            return dict()
+
+        app_profile_dict = self.dict_format()
+        last_retrieval_timestamp = self.__data_retrieval_timestamp[-1].strftime(definitions.datetime_format)
+        last_retrieved_data_size = self.get_latest_retrieved_data_size()
+        app_profile_dict.pop(AppProfileAttribute.date_created_timestamp.name)
+
+        opened_files_dict = app_profile_dict[AppProfileAttribute.opened_files.name]
+
+        app_profile_dict[AppProfileAttribute.memory_infos.name] = \
+            app_profile_dict[AppProfileAttribute.memory_infos.name][-last_retrieved_data_size:]
+
+        app_profile_dict[AppProfileAttribute.cpu_percents.name] = \
+            app_profile_dict[AppProfileAttribute.cpu_percents.name][-last_retrieved_data_size:]
+
+        app_profile_dict[AppProfileAttribute.children_counts.name] = \
+            app_profile_dict[AppProfileAttribute.children_counts.name][-last_retrieved_data_size:]
+
+        app_profile_dict[AppProfileAttribute.usernames.name] = \
+            app_profile_dict[AppProfileAttribute.usernames.name][-last_retrieved_data_size:]
+
+        app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name] = \
+            app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name][-last_retrieved_data_size:]
+
+        app_profile_dict[AppProfileAttribute.opened_files.name] = {
+            last_retrieval_timestamp: opened_files_dict.get(last_retrieval_timestamp, dict())
+        }
+
+        return app_profile_dict
+
+    def get_previously_retrieved_data(self) -> dict:
+        """
+        Get the previously retrieved data as a dictionary. The returned value can be be used for data modelling.
+        Note: this method is complementary to `get_latest_retrieved_data`.
+        :return: The previously retrieved data in the following format:
+            {
+                app_name: "Some name",
+                data_retrieval_timestamps: [timestamp_1, timestamp_2, ...],
+                usernames: [user_1, user_2, ...]
+                memory_infos: [2342, 23215, 31573, ...],
+                opened_files:
+                    {
+                        timestamp_1 : {
+                            path_1: [permission_1, permission_2, ...],
+                            ...
+                        },
+                        ...
+                    },
+                cpu_percents: [0.2, 13.9, ...],
+                children_counts: [1, 5, 0, 4, ...]
+            }
+        :rtype: dict
+        """
+        if len(self.__data_retrieval_timestamp) <= 0:
+            return dict()
+        app_profile_dict = self.dict_format()
+
+        last_retrieval_timestamp = self.__data_retrieval_timestamp[-1].strftime(definitions.datetime_format)
+        last_retrieved_data_size = self.get_latest_retrieved_data_size()
+        old_data_size = len(self.__data_retrieval_timestamp) - last_retrieved_data_size
+        app_profile_dict.pop(AppProfileAttribute.date_created_timestamp.name)
+
+        app_profile_dict[AppProfileAttribute.memory_infos.name] = \
+            app_profile_dict[AppProfileAttribute.memory_infos.name][:old_data_size]
+
+        app_profile_dict[AppProfileAttribute.cpu_percents.name] = \
+            app_profile_dict[AppProfileAttribute.cpu_percents.name][:old_data_size]
+
+        app_profile_dict[AppProfileAttribute.children_counts.name] = \
+            app_profile_dict[AppProfileAttribute.children_counts.name][:old_data_size]
+
+        app_profile_dict[AppProfileAttribute.usernames.name] = \
+            app_profile_dict[AppProfileAttribute.usernames.name][:old_data_size]
+
+        app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name] = \
+            app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name][:old_data_size]
+
+        app_profile_dict[AppProfileAttribute.opened_files.name].pop(last_retrieval_timestamp)
+
+        return app_profile_dict
