@@ -7,7 +7,7 @@ from src.main.common.AppProfileAttribute import AppProfileAttribute
 from src.main.common.AppSummary import AppSummary
 from src.main.common.RangeKeyDict import RangeKeyDict
 from src.main.common.RiskLevel import RiskLevel
-from config import prohibited_files, anomaly_detected_message
+from wades_config import prohibited_files, anomaly_detected_message
 from src.utils.error_messages import anomaly_range_percent_not_in_range, expected_type_but_received_message
 
 

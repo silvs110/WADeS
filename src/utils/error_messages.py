@@ -5,3 +5,4 @@ expected_value_but_received_message = "Expected value for argument '{}' to be '{
 anomaly_range_percent_not_in_range = "Minimum number of points in a bin to not be considered anomalous data should be " \
                                      "larger than {}, but value provided is {} "
 empty_collection_message = "Empty collection: {}"
+file_support_type_error_message = "Only files with extension {} are supported. Received {}"
