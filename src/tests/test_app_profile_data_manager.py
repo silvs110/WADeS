@@ -82,10 +82,8 @@ def test_save_and_get_profile_data() -> None:
         expected_usernames = expected_app_profile_dict.pop(AppProfileAttribute.usernames.name)
         actual_usernames = actual_app_profile_dict.pop(AppProfileAttribute.usernames.name)
         assert set(expected_usernames) == set(actual_usernames)
-        expected_opened_files_raw = expected_app_profile_dict.pop(AppProfileAttribute.opened_files.name)
-        expected_opened_files = {path: set(permissions) for path, permissions in expected_opened_files_raw.items()}
-        actual_opened_files_raw = actual_app_profile_dict.pop(AppProfileAttribute.opened_files.name)
-        actual_opened_files = {path: set(permissions) for path, permissions in actual_opened_files_raw.items()}
+        expected_opened_files = expected_app_profile_dict.pop(AppProfileAttribute.opened_files.name)
+        actual_opened_files = actual_app_profile_dict.pop(AppProfileAttribute.opened_files.name)
         assert expected_opened_files == actual_opened_files
 
         assert expected_app_profile_dict == actual_app_profile_dict

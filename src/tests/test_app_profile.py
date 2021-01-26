@@ -94,7 +94,7 @@ def test_add_new_information_from_process() -> None:
                                                                 data_retrieval_timestamp=retrieval_time)
             assert (len(app_profile.get_users()) > 0)
             assert (process_name == app_profile.get_application_name())
-            assert (len(app_profile.get_open_files().keys()) >= 0)  # A process may or may not open a file
+            assert (len(app_profile.get_open_files()) >= 0)  # A process may or may not open a file
             assert (len(app_profile.get_memory_usages()) > 0)
             assert (len(app_profile.get_cpu_percentages()) > 0)
             assert (len(
@@ -209,18 +209,17 @@ def test_add_open_files() -> None:
             timestamp = datetime.datetime.now()
             process_open_files = process.open_files()
             app_profile.add_open_files(open_files=process_open_files, data_retrieval_timestamp=timestamp)
-            # As we only retrieve the information once, only one key is stored in the dictionary.
-            application_open_files_with_timestamp = app_profile.get_open_files()
-            application_open_files = application_open_files_with_timestamp[timestamp]
-            assert len(process_open_files) >= len(application_open_files.keys()), \
+            application_open_files = app_profile.get_open_files()
+            assert len(application_open_files) == 1
+            application_open_files_batch = application_open_files[0]
+            # Some files may be repeated when retrieved from the psutil.
+            assert len(process_open_files) >= len(application_open_files_batch), \
                 """The length of expected open files is not equal nor larger than actual open files."
                     "\nProcess_open_files: {}\n Application open files: {}""".format(process_open_files,
-                                                                                     application_open_files)
+                                                                                     application_open_files_batch)
 
             for open_file in process_open_files:
-                assert open_file.path in application_open_files
-                if hasattr(open_file, "mode"):  # For Linux. Some OS don't have mode attribute.
-                    assert open_file.mode in application_open_files[open_file.path]
+                assert open_file.path in application_open_files_batch
         except AccessDenied:  # Permission error if test is not run as admin.
             continue
         except OSError:
@@ -303,10 +302,6 @@ def test_get_normalized_app_profile_data() -> None:
     normalized_retrieved_data_size = \
         len(app_profile.get_data_retrieval_timestamp()) - app_profile.get_latest_retrieved_data_size()
 
-    expected_normalized_opened_files = app_profile_dict[AppProfileAttribute.opened_files.name]
-    expected_normalized_opened_files = expected_normalized_opened_files.copy()
-    expected_normalized_opened_files.pop(last_retrieved_timestamp)
-
     assert normalized_retrieved_data_size == 4
 
     # Build expected normalized app profile
@@ -324,7 +319,8 @@ def test_get_normalized_app_profile_data() -> None:
         AppProfileAttribute.usernames.name:
             app_profile_dict[AppProfileAttribute.usernames.name][:normalized_retrieved_data_size],
 
-        AppProfileAttribute.opened_files.name: expected_normalized_opened_files,
+        AppProfileAttribute.opened_files.name:
+            app_profile_dict[AppProfileAttribute.opened_files.name][:normalized_retrieved_data_size],
 
         AppProfileAttribute.data_retrieval_timestamps.name:
             app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name][:normalized_retrieved_data_size]
@@ -366,10 +362,8 @@ def test_get_latest_retrieved_data() -> None:
         AppProfileAttribute.usernames.name:
             app_profile_dict[AppProfileAttribute.usernames.name][-latest_retrieved_data_size:],
 
-        AppProfileAttribute.opened_files.name: {
-            last_retrieved_timestamp:
-                app_profile_dict[AppProfileAttribute.opened_files.name][last_retrieved_timestamp]
-            },
+        AppProfileAttribute.opened_files.name:
+            app_profile_dict[AppProfileAttribute.opened_files.name][-latest_retrieved_data_size:],
         AppProfileAttribute.data_retrieval_timestamps.name:
             app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name][-latest_retrieved_data_size:]
     }

@@ -24,7 +24,7 @@ class AppProfile:
         self.__name = application_name
         self.__memory_usages = list()  # this is in bytes
         self.__cpu_percent_usages = list()
-        self.__open_files = dict()
+        self.__open_files = list()
         self.__data_retrieval_timestamp = list()
         self.__child_processes_count = list()
         self.__users = list()
@@ -53,19 +53,13 @@ class AppProfile:
         """
         return copy.deepcopy(self.__memory_usages)
 
-    def get_open_files(self) -> dict:
+    def get_open_files(self) -> list:
         """
         Gets the dictionary of opened files for this application.
         Format:
-                {
-                    timestamp_1 : {
-                        path_1: [permission_1, permission_2, ...],
-                        ...
-                    },
-                    ...
-                }
+                [[path_1, path_2, ...], [path_45, ...], ...]
         :return: A dictionary of opened files and the permissions.
-        :rtype: dict
+        :rtype: list
         """
         return copy.deepcopy(self.__open_files)
 
@@ -175,7 +169,7 @@ class AppProfile:
     def add_new_information(self, memory_usage: int, child_processes_count: int, users: list, open_files: list,
                             cpu_percentage: float, data_retrieval_timestamp: datetime.datetime) -> None:
         """
-        Adds new information about this application.
+        Adds new information about this application. Adds for a specific process associated to the application.
         :raises TypeError if one of the following criteria is met:
             - memory_usage or child_processes_count is not of type 'int'
             - users is not of type 'set'
@@ -243,15 +237,9 @@ class AppProfile:
         if not isinstance(data_retrieval_timestamp, datetime.datetime):
             raise TypeError(expected_type_but_received_message.format("data_retrieval_timestamp", "datetime.datetime",
                                                                       data_retrieval_timestamp))
-        last_accessed_files = dict()
+        last_accessed_files = {open_file.path for open_file in open_files}
 
-        for open_file in open_files:
-            if open_file.path not in last_accessed_files:
-                last_accessed_files[open_file.path] = list()
-
-            if hasattr(open_file, "mode"):
-                last_accessed_files[open_file.path].append(open_file.mode)
-        self.__open_files[data_retrieval_timestamp] = last_accessed_files
+        self.__open_files.append(list(last_accessed_files))
 
     def dict_format(self) -> dict:
         """
@@ -263,14 +251,7 @@ class AppProfile:
                 date_created_timestamp: "2020-12-12 14:30:32:34.232",
                 usernames: [user_1, user_2, ...]
                 memory_infos: [2342, 23215, 31573, ...],
-                opened_files:
-                    {
-                        timestamp_1 : {
-                            path_1: [permission_1, permission_2, ...],
-                            ...
-                        },
-                        ...
-                    },
+                opened_files: [[path_1, path_2, ...], [path_45, ...], ...],
                 cpu_percents: [0.2, 13.9, ...],
                 children_counts: [1, 5, 0, 4, ...]
                 data_retrieval_timestamps: [timestamp_1, timestamp_2, ...]
@@ -283,16 +264,13 @@ class AppProfile:
             str_timestamp = timestamp.strftime(wades_config.datetime_format)
             str_data_retrieval_timestamps.append(str_timestamp)
         object_creation_timestamp = self.__object_creation_timestamp.strftime(wades_config.datetime_format)
-        opened_files_dict = dict()
 
-        for timestamp, files in self.__open_files.items():
-            opened_files_dict[timestamp.strftime(wades_config.datetime_format)] = files
         app_attrs = {
             AppProfileAttribute.app_name.name: self.__name,
             AppProfileAttribute.date_created_timestamp.name: object_creation_timestamp,
             AppProfileAttribute.memory_infos.name: self.__memory_usages,
             AppProfileAttribute.cpu_percents.name: self.__cpu_percent_usages,
-            AppProfileAttribute.opened_files.name: opened_files_dict,
+            AppProfileAttribute.opened_files.name: self.__open_files,
             AppProfileAttribute.data_retrieval_timestamps.name: str_data_retrieval_timestamps,
             AppProfileAttribute.children_counts.name: self.__child_processes_count,
             AppProfileAttribute.usernames.name: self.__users
@@ -310,7 +288,7 @@ class AppProfile:
             - cpu_percent -> List[float]
             - children_count -> List[int]
             - usernames -> List[str]
-            - opened_files -> Dict[str, Dict[str, List[str]]]
+            - opened_files -> List[List[str]]
         :raises ValueError if app_profile_dict does not have the following keys:
             - app_name
             - date_created_timestamp
@@ -327,14 +305,7 @@ class AppProfile:
                 date_created_timestamp: "2020-12-12 14:30:32:34.232",
                 usernames: [user_1, user_2, ...]
                 memory_infos: [2342, 23215, 31573, ...],
-                opened_files:
-                    {
-                        timestamp_1 : {
-                            path_1: [permission_1, permission_2, ...],
-                            ...
-                        },
-                        ...
-                    },
+                opened_files: [[path_1, path_2, ...], [path_45, ...], ...],
                 cpu_percents: [0.2, 13.9, ...],
                 children_counts: [1, 5, 0, 4, ...]
                 data_retrieval_timestamps: [timestamp_1, timestamp_2, ...]
@@ -357,16 +328,15 @@ class AppProfile:
         cpu_percents = app_profile_dict[AppProfileAttribute.cpu_percents.name]
         child_process_counts = app_profile_dict[AppProfileAttribute.children_counts.name]
         users = app_profile_dict[AppProfileAttribute.usernames.name]
-        opened_files_from_json = app_profile_dict[AppProfileAttribute.opened_files.name]
+        opened_files = app_profile_dict[AppProfileAttribute.opened_files.name]
 
         if not (all(isinstance(rss_mem, int) for rss_mem in memory_usages) and
                 all(isinstance(cpu_percent, float) for cpu_percent in cpu_percents) and
                 all(isinstance(children_count, int) for children_count in child_process_counts) and
                 all(isinstance(user, str) for user in users) and
-                (isinstance(opened_files_from_json, dict) and all(
-                    isinstance(files, dict) and isinstance(timestamp, str) and isinstance(file, str) and isinstance(
-                        permissions, list) for timestamp, files in
-                    opened_files_from_json.items() for file, permissions in files.items()))):
+                (isinstance(opened_files, list) and all(
+                    isinstance(files, (list, set)) and isinstance(file, str) for files in
+                    opened_files for file in files))):
             raise TypeError(expected_type_but_received_message.format("app_profile_dict_values",
                                                                       "Union[dict, str, int, 'float']",
                                                                       app_profile_dict))
@@ -375,9 +345,7 @@ class AppProfile:
         self.__cpu_percent_usages = cpu_percents
         self.__child_processes_count = child_process_counts
         self.__users = users
-
-        for timestamp, files in opened_files_from_json.items():
-            self.__open_files[datetime.datetime.strptime(timestamp, wades_config.datetime_format)] = files
+        self.__open_files = opened_files
 
         str_data_retrieval_timestamps = app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name]
         self.__data_retrieval_timestamp = [datetime.datetime.strptime(retrieval_timestamp, wades_config.datetime_format)
@@ -394,6 +362,7 @@ class AppProfile:
         last_retrieved_data_timestamp = self.__data_retrieval_timestamp[-1]
         return self.__data_retrieval_timestamp.count(last_retrieved_data_timestamp)
 
+    # noinspection DuplicatedCode
     def get_latest_retrieved_data(self) -> dict:
         """
         Get the latest retrieved data as a dictionary. The returned value can be be used for data modelling.
@@ -404,14 +373,7 @@ class AppProfile:
                 data_retrieval_timestamps: [timestamp_1, timestamp_2, ...],
                 usernames: [user_1, user_2, ...]
                 memory_infos: [2342, 23215, 31573, ...],
-                opened_files:
-                    {
-                        timestamp_1 : {
-                            path_1: [permission_1, permission_2, ...],
-                            ...
-                        },
-                        ...
-                    },
+                opened_files: [[path_1, path_2, ...], [path_45, ...], ...],
                 cpu_percents: [0.2, 13.9, ...],
                 children_counts: [1, 5, 0, 4, ...]
             }
@@ -422,11 +384,8 @@ class AppProfile:
             return dict()
 
         app_profile_dict = self.dict_format()
-        last_retrieval_timestamp = self.__data_retrieval_timestamp[-1].strftime(wades_config.datetime_format)
         last_retrieved_data_size = self.get_latest_retrieved_data_size()
         app_profile_dict.pop(AppProfileAttribute.date_created_timestamp.name)
-
-        opened_files_dict = app_profile_dict[AppProfileAttribute.opened_files.name]
 
         app_profile_dict[AppProfileAttribute.memory_infos.name] = \
             app_profile_dict[AppProfileAttribute.memory_infos.name][-last_retrieved_data_size:]
@@ -443,12 +402,12 @@ class AppProfile:
         app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name] = \
             app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name][-last_retrieved_data_size:]
 
-        app_profile_dict[AppProfileAttribute.opened_files.name] = {
-            last_retrieval_timestamp: opened_files_dict.get(last_retrieval_timestamp, dict())
-        }
+        app_profile_dict[AppProfileAttribute.opened_files.name] = \
+            app_profile_dict[AppProfileAttribute.opened_files.name][-last_retrieved_data_size:]
 
         return app_profile_dict
 
+    # noinspection DuplicatedCode
     def get_previously_retrieved_data(self) -> dict:
         """
         Get the previously retrieved data as a dictionary. The returned value can be be used for data modelling.
@@ -459,14 +418,7 @@ class AppProfile:
                 data_retrieval_timestamps: [timestamp_1, timestamp_2, ...],
                 usernames: [user_1, user_2, ...]
                 memory_infos: [2342, 23215, 31573, ...],
-                opened_files:
-                    {
-                        timestamp_1 : {
-                            path_1: [permission_1, permission_2, ...],
-                            ...
-                        },
-                        ...
-                    },
+                opened_files: [[path_1, path_2, ...], [path_45, ...], ...],
                 cpu_percents: [0.2, 13.9, ...],
                 children_counts: [1, 5, 0, 4, ...]
             }
@@ -476,7 +428,6 @@ class AppProfile:
             return dict()
         app_profile_dict = self.dict_format()
 
-        last_retrieval_timestamp = self.__data_retrieval_timestamp[-1].strftime(wades_config.datetime_format)
         last_retrieved_data_size = self.get_latest_retrieved_data_size()
         old_data_size = len(self.__data_retrieval_timestamp) - last_retrieved_data_size
         app_profile_dict.pop(AppProfileAttribute.date_created_timestamp.name)
@@ -496,6 +447,7 @@ class AppProfile:
         app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name] = \
             app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name][:old_data_size]
 
-        app_profile_dict[AppProfileAttribute.opened_files.name].pop(last_retrieval_timestamp)
+        app_profile_dict[AppProfileAttribute.opened_files.name] = \
+            app_profile_dict[AppProfileAttribute.opened_files.name][:old_data_size]
 
         return app_profile_dict
