@@ -264,23 +264,25 @@ class FrequencyTechnique:
         non_numeric_anomalous_attrs = {AppProfileAttribute.usernames.name} if is_user_attr_anomalous else set()
 
         # Get opened files info and parse it into appropriate format
-        normalized_files_dict = normalized_app_profile_data[AppProfileAttribute.opened_files.name]
-        normalized_files = list()
-        for files in normalized_files_dict.values():
-            normalized_files.extend(files.keys())
+        normalized_files = normalized_app_profile_data[AppProfileAttribute.opened_files.name]
+        normalized_files_flat = list()
+        for files in normalized_files:
+            normalized_files_flat.extend(files)
 
-        last_retrieved_files_dict = latest_app_profile_data[AppProfileAttribute.opened_files.name]
-        last_retrieved_files = list()
-        for files in last_retrieved_files_dict.values():
-            last_retrieved_files.extend(files.keys())
+        last_retrieved_files = latest_app_profile_data[AppProfileAttribute.opened_files.name]
+        last_retrieved_files_flat = list()
+        for files in last_retrieved_files:
+            last_retrieved_files_flat.extend(files)
 
         is_files_anomalous_whitelist, files_whitelist_risk_level, anomalous_file_whitelist = \
             FrequencyTechnique.__detect_anomalies_in_non_numeric_attribute_with_whitelisting(
-                normalized_attribute_data=normalized_files, last_retrieved_attribute_data=last_retrieved_files)
+                normalized_attribute_data=normalized_files_flat,
+                last_retrieved_attribute_data=last_retrieved_files_flat)
 
         is_files_anomalous_blacklist, files_blacklist_risk_level, anomalous_file_blacklist = \
             FrequencyTechnique.__detect_anomalies_in_non_numeric_attribute_with_blacklisting(
-                normalized_attribute_data=normalized_files, last_retrieved_attribute_data=last_retrieved_files,
+                normalized_attribute_data=normalized_files_flat,
+                last_retrieved_attribute_data=last_retrieved_files_flat,
                 blacklisted_values=prohibited_files)
 
         if is_files_anomalous_blacklist or is_files_anomalous_whitelist:

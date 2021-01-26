@@ -78,7 +78,6 @@ def check_app_profile_has_the_right_format(app_name: str, app_profile: dict) -> 
     assert all(isinstance(user, str) for user in users)
 
     opened_files = app_profile[AppProfileAttribute.opened_files.name]
-    assert isinstance(opened_files, dict)
-    assert all(isinstance(files, dict) and isinstance(timestamp, str) and isinstance(file, str) and isinstance(
-        permissions, list) for timestamp, files in
-               opened_files.items() for file, permissions in files.items())
+    assert isinstance(opened_files, list)
+    assert all(isinstance(files, (list, set)) and isinstance(file, str) for files in
+               opened_files for file in files)
