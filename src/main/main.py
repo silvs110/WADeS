@@ -3,19 +3,29 @@ from time import sleep
 
 import psutil
 
+from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
+from src.main.psHandler.ProcessHandler import ProcessHandler
 
-def run_data_collector() -> None:
-    """
+process_handler = ProcessHandler()
 
-    :return:
-    """
 
-    while(True):
-        running_pids = psutil.pids()
-        for running_pid in running_pids:
-            process = psutil.Process(running_pid)
-            pprint(process)
+def process_handler_run():
+    process_handler.collect_running_processes_information()
+    app_profiles = process_handler.get_registered_app_profiles_as_dict()
+    pprint(app_profiles)
+    return process_handler.get_registered_app_profiles_list()
 
-        sleep(100)
 
-run_data_collector()
+def connect_to_db():
+    app_db_manager = AppProfileDataManager()
+
+
+def app_profile_json():
+    app_profiles = process_handler_run()
+    AppProfileDataManager.save_app_profiles(app_profiles=app_profiles)
+
+
+for i in range(0, 10):
+    app_profile_json()
+ls = AppProfileDataManager.get_saved_profiles_as_dict()
+pprint(ls)

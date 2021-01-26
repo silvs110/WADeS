@@ -3,7 +3,7 @@ import datetime
 import time
 import psutil
 
-import config
+import wades_config
 from src.main.common.AppProfileAttribute import AppProfileAttribute
 from src.utils.error_messages import expected_type_but_received_message, expected_value_but_received_message
 from typing import Union
@@ -280,13 +280,13 @@ class AppProfile:
         """
         str_data_retrieval_timestamps = list()
         for timestamp in self.__data_retrieval_timestamp:
-            str_timestamp = timestamp.strftime(config.datetime_format)
+            str_timestamp = timestamp.strftime(wades_config.datetime_format)
             str_data_retrieval_timestamps.append(str_timestamp)
-        object_creation_timestamp = self.__object_creation_timestamp.strftime(config.datetime_format)
+        object_creation_timestamp = self.__object_creation_timestamp.strftime(wades_config.datetime_format)
         opened_files_dict = dict()
 
         for timestamp, files in self.__open_files.items():
-            opened_files_dict[timestamp.strftime(config.datetime_format)] = files
+            opened_files_dict[timestamp.strftime(wades_config.datetime_format)] = files
         app_attrs = {
             AppProfileAttribute.app_name.name: self.__name,
             AppProfileAttribute.date_created_timestamp.name: object_creation_timestamp,
@@ -352,7 +352,7 @@ class AppProfile:
                                                                         app_profile_dict_keys))
 
         self.__object_creation_timestamp = datetime.datetime.strptime(
-            app_profile_dict[AppProfileAttribute.date_created_timestamp.name], config.datetime_format)
+            app_profile_dict[AppProfileAttribute.date_created_timestamp.name], wades_config.datetime_format)
         memory_usages = app_profile_dict[AppProfileAttribute.memory_infos.name]
         cpu_percents = app_profile_dict[AppProfileAttribute.cpu_percents.name]
         child_process_counts = app_profile_dict[AppProfileAttribute.children_counts.name]
@@ -377,10 +377,10 @@ class AppProfile:
         self.__users = users
 
         for timestamp, files in opened_files_from_json.items():
-            self.__open_files[datetime.datetime.strptime(timestamp, config.datetime_format)] = files
+            self.__open_files[datetime.datetime.strptime(timestamp, wades_config.datetime_format)] = files
 
         str_data_retrieval_timestamps = app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name]
-        self.__data_retrieval_timestamp = [datetime.datetime.strptime(retrieval_timestamp, config.datetime_format)
+        self.__data_retrieval_timestamp = [datetime.datetime.strptime(retrieval_timestamp, wades_config.datetime_format)
                                            for retrieval_timestamp in str_data_retrieval_timestamps]
 
     def get_latest_retrieved_data_size(self) -> int:
@@ -422,7 +422,7 @@ class AppProfile:
             return dict()
 
         app_profile_dict = self.dict_format()
-        last_retrieval_timestamp = self.__data_retrieval_timestamp[-1].strftime(config.datetime_format)
+        last_retrieval_timestamp = self.__data_retrieval_timestamp[-1].strftime(wades_config.datetime_format)
         last_retrieved_data_size = self.get_latest_retrieved_data_size()
         app_profile_dict.pop(AppProfileAttribute.date_created_timestamp.name)
 
@@ -476,7 +476,7 @@ class AppProfile:
             return dict()
         app_profile_dict = self.dict_format()
 
-        last_retrieval_timestamp = self.__data_retrieval_timestamp[-1].strftime(config.datetime_format)
+        last_retrieval_timestamp = self.__data_retrieval_timestamp[-1].strftime(wades_config.datetime_format)
         last_retrieved_data_size = self.get_latest_retrieved_data_size()
         old_data_size = len(self.__data_retrieval_timestamp) - last_retrieved_data_size
         app_profile_dict.pop(AppProfileAttribute.date_created_timestamp.name)

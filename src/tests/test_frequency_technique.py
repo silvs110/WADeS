@@ -6,7 +6,7 @@ import pytest
 from src.main.common.AppProfileAttribute import AppProfileAttribute
 from src.main.common.AppSummaryAttribute import AppSummaryAttribute
 from src.main.common.RiskLevel import RiskLevel
-from config import anomaly_detected_message
+from wades_config import anomaly_detected_message
 from src.main.modeller.FrequencyTechnique import FrequencyTechnique
 from src.tests.test_helpers import build_application_profile_list
 
@@ -112,8 +112,7 @@ def test_execute_frequency_modelling_with_invalid_inputs() -> None:
                                                       RiskLevel.high, {AppProfileAttribute.memory_infos.name,
                                                                        AppProfileAttribute.opened_files.name}, True),
                              AppModellingTestScenario("app_with_abnormal_memory_usage",
-                                                      RiskLevel.medium, {AppProfileAttribute.memory_infos.name}, True),
-
+                                                      RiskLevel.medium, {AppProfileAttribute.memory_infos.name}, True)
                          ]
                          )
 def test_execute_frequency_modelling_with_anomalies(saved_test_app_profiles_dict: Dict[str, dict],

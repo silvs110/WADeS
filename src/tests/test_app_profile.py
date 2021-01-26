@@ -5,7 +5,7 @@ import pytest
 from psutil import AccessDenied
 
 from paths import SAMPLE_APP_PROF_DATA_PATH
-import config
+import wades_config
 from src.main.common.AppProfile import AppProfile
 from src.main.common.AppProfileAttribute import AppProfileAttribute
 from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
@@ -261,10 +261,10 @@ def test_dict_format() -> None:
                                                app_profile=registered_app_dict)
         # Check that all datetime values are in string format. Will throw an error if it is not in the right format.
         object_created_timestamp = registered_app_dict[AppProfileAttribute.date_created_timestamp.name]
-        datetime.datetime.strptime(object_created_timestamp, config.datetime_format)
+        datetime.datetime.strptime(object_created_timestamp, wades_config.datetime_format)
         retrieval_timestamps = registered_app_dict[AppProfileAttribute.data_retrieval_timestamps.name]
         for retrieval_timestamp in retrieval_timestamps:
-            datetime.datetime.strptime(retrieval_timestamp, config.datetime_format)
+            datetime.datetime.strptime(retrieval_timestamp, wades_config.datetime_format)
 
 
 # noinspection PyTypeChecker

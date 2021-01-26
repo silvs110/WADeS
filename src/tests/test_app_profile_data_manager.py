@@ -1,7 +1,7 @@
 import pytest
 
 
-from paths import SAMPLE_APP_PROF_DATA_PATH
+from paths import SAMPLE_APP_PROF_DATA_PATH, APP_PROF_DATA_DIR_PATH
 from src.main.common.AppProfile import AppProfile
 from src.main.common.AppProfileAttribute import AppProfileAttribute
 from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
@@ -58,13 +58,18 @@ def test_save_and_get_profile_data() -> None:
     Test save_app_profiles() and get_saved_profiles().
     Checks that saving and retrieving the app profiles does not modify the data.
     """
+    file_path_to_use = APP_PROF_DATA_DIR_PATH.absolute() / "app_data_manager_test.csv"
+
     process_handler = ProcessHandler()
     process_handler.collect_running_processes_information()
     actual_app_profiles = process_handler.get_registered_app_profiles_list()
 
-    AppProfileDataManager.save_app_profiles(app_profiles=actual_app_profiles)
-    expected_app_profiles = AppProfileDataManager.get_saved_profiles()
+    AppProfileDataManager.save_app_profiles(app_profiles=actual_app_profiles, app_profile_file=file_path_to_use)
+    expected_app_profiles = AppProfileDataManager.get_saved_profiles(app_profile_file=file_path_to_use)
+    file_path_to_use.unlink()
+
     assert len(expected_app_profiles) == len(actual_app_profiles)
+
     for index in range(0, len(expected_app_profiles)):
         expected_app_profile = expected_app_profiles[index]
         actual_app_profile = actual_app_profiles[index]
