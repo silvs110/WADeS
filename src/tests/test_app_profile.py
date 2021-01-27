@@ -31,6 +31,8 @@ Input validation test:
 
 """
 
+logger_name = "testAppProfile"
+
 
 def test_application_equality() -> None:
     """
@@ -250,7 +252,8 @@ def test_dict_format() -> None:
     """
     Test dict_format() for an application profile. It checks that the returned value is in the right format.
     """
-    process_handler = ProcessHandler()
+
+    process_handler = ProcessHandler(logger_name, True)
     process_handler.collect_running_processes_information()
     registered_applications = process_handler.get_registered_app_profiles_list()
     for registered_app in registered_applications:

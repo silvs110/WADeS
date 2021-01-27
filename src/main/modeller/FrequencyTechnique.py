@@ -7,13 +7,13 @@ from src.main.common.AppProfileAttribute import AppProfileAttribute
 from src.main.common.AppSummary import AppSummary
 from src.main.common.RangeKeyDict import RangeKeyDict
 from src.main.common.RiskLevel import RiskLevel
-from wades_config import prohibited_files, anomaly_detected_message
+from wades_config import prohibited_files, anomaly_detected_message, minimum_retrieval_size_for_modelling
 from src.utils.error_messages import anomaly_range_percent_not_in_range, expected_type_but_received_message
 
 
 class FrequencyTechnique:
 
-    def __init__(self, min_number_count_non_anomalous: int = 5) -> None:
+    def __init__(self, min_number_count_non_anomalous: int = 5, is_test: bool = False) -> None:
         """
         Initializes this class.
         :raises TypeError if min_number_count_non_anomalous is not of type 'int'.
@@ -21,7 +21,8 @@ class FrequencyTechnique:
         :param min_number_count_non_anomalous: The minimum number of data points in the same bin as the 'anomalous'
             point so as to not consider it a high risk anomaly.
         :type min_number_count_non_anomalous: int
-
+        :param is_test: Flag for running the modelling algorithm in test mode. Defaults to False.
+        :type is_test: bool
         """
 
         if not isinstance(min_number_count_non_anomalous, int):
@@ -39,6 +40,7 @@ class FrequencyTechnique:
         # This variable stores the minimum number of data points in the same bin as the detected 'anomalous' point.
         # It is useful in case of modelling new data and sets how strict does the technique can be.
         self.__min_count_non_anomalous = min_number_count_non_anomalous
+        self.__is_test = is_test
 
     def get_minimum_count_non_anomalous(self) -> int:
         """
@@ -126,27 +128,32 @@ class FrequencyTechnique:
 
         numeric_attribute_names = {AppProfileAttribute.memory_infos.name, AppProfileAttribute.cpu_percents.name,
                                    AppProfileAttribute.children_counts.name}
+        error_message = None
+        max_risk_level = RiskLevel.none
+        anomalous_attrs = set()
 
         normalized_app_profile_data = app_profile.get_previously_retrieved_data()
         latest_app_profile_data = app_profile.get_latest_retrieved_data()
-        # Numeric data
 
-        is_anomalous_numeric, numeric_max_risk_level, anomalous_attrs = \
-            self.__detect_anomalies_in_numeric_attributes(normal_app_profile_data=normalized_app_profile_data,
-                                                          latest_app_profile_data=latest_app_profile_data,
-                                                          numeric_attribute_names=numeric_attribute_names)
-        # Non-numeric data
-        is_anomalous_non_numeric, non_numeric_max_risk_level, non_numeric_anomalous_attrs = \
-            FrequencyTechnique.__detect_anomalies_in_non_numeric_attributes(
-                normalized_app_profile_data=normalized_app_profile_data,
-                latest_app_profile_data=latest_app_profile_data)
+        if len(latest_app_profile_data) >= minimum_retrieval_size_for_modelling or self.__is_test:
 
-        # Prepare data to convert it into an AppSummary object.
-        max_risk_level = max(numeric_max_risk_level, non_numeric_max_risk_level)
-        anomalous_attrs.update(non_numeric_anomalous_attrs)
-        error_message = None
-        if is_anomalous_non_numeric or is_anomalous_numeric:
-            error_message = anomaly_detected_message
+            # Numeric data
+            is_anomalous_numeric, numeric_max_risk_level, anomalous_attrs = \
+                self.__detect_anomalies_in_numeric_attributes(normal_app_profile_data=normalized_app_profile_data,
+                                                              latest_app_profile_data=latest_app_profile_data,
+                                                              numeric_attribute_names=numeric_attribute_names)
+            # Non-numeric data
+            is_anomalous_non_numeric, non_numeric_max_risk_level, non_numeric_anomalous_attrs = \
+                FrequencyTechnique.__detect_anomalies_in_non_numeric_attributes(
+                    normalized_app_profile_data=normalized_app_profile_data,
+                    latest_app_profile_data=latest_app_profile_data)
+
+            # Prepare data to convert it into an AppSummary object.
+            max_risk_level = max(numeric_max_risk_level, non_numeric_max_risk_level)
+            anomalous_attrs.update(non_numeric_anomalous_attrs)
+
+            if is_anomalous_non_numeric or is_anomalous_numeric:
+                error_message = anomaly_detected_message
         app_summary = AppSummary(app_name=app_profile.get_application_name(),
                                  error_message=error_message,
                                  risk=max_risk_level,
@@ -207,6 +214,7 @@ class FrequencyTechnique:
         for numeric_attribute_name in numeric_attribute_names:
             normal_attribute_values = normal_app_profile_data[numeric_attribute_name]
             latest_attribute_values = latest_app_profile_data[numeric_attribute_name]
+
             anomaly_found, risk_level = self.__detect_anomalies_in_numeric_attribute(
                 previous_attribute_data=normal_attribute_values, latest_attribute_data=latest_attribute_values)
             risk_levels.add(risk_level)

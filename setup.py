@@ -12,6 +12,7 @@ setup(
     install_requires=[
         'psutil',
         'pytest',
-        'idna'
+        'idna',
+        'python-daemon'
     ]
 )

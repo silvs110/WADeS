@@ -13,13 +13,15 @@ Output Format test:
 
 """
 
+logger_name = "testProcessHandler"
+
 
 def test_collect_running_processes_information() -> None:
     """
     Test collecting running process information by checking that it sets the value to the registered application
     properties.
     """
-    process_handler = ProcessHandler()
+    process_handler = ProcessHandler(logger_name, True)
     registered_apps_before_collection = process_handler.get_registered_application_names()
     assert len(registered_apps_before_collection) == 0
     process_handler.collect_running_processes_information()

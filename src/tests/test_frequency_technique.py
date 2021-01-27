@@ -126,7 +126,7 @@ def test_execute_frequency_modelling_with_anomalies(saved_test_app_profiles_dict
     """
     app_profiles = build_application_profile_list(app_profiles_dict=saved_test_app_profiles_dict,
                                                   application_names={modelling_test_scenario.app_name})
-    fq = FrequencyTechnique()
+    fq = FrequencyTechnique(is_test=True)
     app_summaries = fq(data=app_profiles)
 
     assert len(app_summaries) == 1
