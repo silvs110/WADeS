@@ -22,6 +22,7 @@ Input Validation tests:
 * get_saved_profiles_as_dict()
 """
 
+logger_name = "testAppProfileDataManager"
 
 # noinspection PyTypeChecker
 def test_save_app_profiles_with_input_validation() -> None:
@@ -60,7 +61,7 @@ def test_save_and_get_profile_data() -> None:
     """
     file_path_to_use = APP_PROF_DATA_DIR_PATH.absolute() / "app_data_manager_test.csv"
 
-    process_handler = ProcessHandler()
+    process_handler = ProcessHandler(logger_name, True)
     process_handler.collect_running_processes_information()
     actual_app_profiles = process_handler.get_registered_app_profiles_list()
 

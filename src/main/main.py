@@ -1,31 +1,26 @@
-from pprint import pprint
+import threading
 from time import sleep
 
-import psutil
-
-from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
+from src.main.modeller.Modeller import Modeller
 from src.main.psHandler.ProcessHandler import ProcessHandler
 
-process_handler = ProcessHandler()
+if __name__ == "__main__":
 
+    modeller = Modeller()
+    ps_handler = ProcessHandler()
+    exit_program = False
+    while not exit_program:
+        user_input = str(input("command: "))
 
-def process_handler_run():
-    process_handler.collect_running_processes_information()
-    app_profiles = process_handler.get_registered_app_profiles_as_dict()
-    pprint(app_profiles)
-    return process_handler.get_registered_app_profiles_list()
-
-
-def connect_to_db():
-    app_db_manager = AppProfileDataManager()
-
-
-def app_profile_json():
-    app_profiles = process_handler_run()
-    AppProfileDataManager.save_app_profiles(app_profiles=app_profiles)
-
-
-for i in range(0, 10):
-    app_profile_json()
-ls = AppProfileDataManager.get_saved_profiles_as_dict()
-pprint(ls)
+        if user_input == "modeller start":
+            modeller.start()
+        elif user_input == "pshandler start":
+            ps_handler.start()
+        elif user_input == "pshandler terminate":
+            ps_handler.terminate()
+        elif user_input == "modeller terminate":
+            modeller.terminate()
+        elif user_input == "exit":
+            exit_program = True
+        else:
+            continue

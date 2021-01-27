@@ -5,21 +5,37 @@ import time
 from typing import Dict, List, Set
 
 import psutil
+import atexit
 
+from paths import LOGGER_DIR_PATH, LOGGER_TEST_DIR_PATH
 from src.main.common.AppProfile import AppProfile
+from src.main.common.Daemon import Daemon
+from src.main.common.LoggerUtils import LoggerUtils
 from src.main.common.ProcessAttribute import ProcessAttribute
+from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
 from src.utils.error_messages import expected_type_but_received_message, expected_application_message
+from wades_config import log_file_extension
 
 
-class ProcessHandler:
+class ProcessHandler(Daemon):
 
-    def __init__(self):
+    def __init__(self, logger_name: str = "ProcessHandler", is_test: bool = False):
         """
-        Abstracts the object that handles processes running in the system.
+        Abstracts the daemon that collects information about the running processes.
+        :param logger_name: The name of the logger.
+        :type logger_name: str
+        :param is_test: Flag for checking if this is called by a test. It changes the log path according to the value.
+        :type is_test: bool
         """
+        logger_base_dir = LOGGER_DIR_PATH if not is_test else LOGGER_TEST_DIR_PATH
+        LoggerUtils.setup_logger(logger_name, logger_base_dir / (logger_name + log_file_extension))
+        self.__logger = logging.getLogger(logger_name)
+
         self.__registered_app_profiles = dict()
         self.__previous_retrieval_time = None
         self.__attrs_to_retrieve = [enum.name for enum in ProcessAttribute if enum.name != 'children_count']
+
+        super(ProcessHandler, self).__init__(self.__logger, logger_name)
 
     def get_registered_app_profiles_as_dict(self) -> Dict[str, AppProfile]:
         """
@@ -65,11 +81,17 @@ class ProcessHandler:
         """
         application_name_to_processes_map = dict()
         process_dicts = self.__get_process_info_as_list_of_dict()
+
         for process_dict in process_dicts:
+
             application_name = process_dict[ProcessAttribute.name.name]
             if application_name not in application_name_to_processes_map:
                 application_name_to_processes_map[application_name] = list()
             application_name_to_processes_map[application_name].append(process_dict)
+
+        self.__logger.info(
+            "Found processes for the applications - {}".format(application_name_to_processes_map.keys())
+        )
         return application_name_to_processes_map
 
     def __get_process_info_as_list_of_dict(self) -> List[dict]:
@@ -78,6 +100,8 @@ class ProcessHandler:
         :return: A list of dictionaries that contains information about the processes.
         :rtype: List[dict]
         """
+        self.__logger.info("Retrieving running processes information.")
+
         processes_list = list()
         self.__previous_retrieval_time = datetime.datetime.now()
         processes = list(psutil.process_iter())
@@ -96,7 +120,10 @@ class ProcessHandler:
                 processes_list.append(process_info)
 
             except (psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess) as psutil_error:
-                logging.exception(psutil_error)
+                self.__logger.exception(psutil_error)
+
+        self.__logger.info("Finished retrieving and handling {} processes.".format(len(processes_list)))
+
         return processes_list
 
     def __add_processes_to_application_profile(self, application_name: str, application_processes: List[dict]) -> None:
@@ -141,7 +168,24 @@ class ProcessHandler:
         """
         Collects running process information. To get the information call get_registered_app_profiles_as_dict.
         """
+        self.__logger.info("Started retrieving running processes information.")
         app_name_to_processes_map = self.__collect_running_processes_and_group_by_application()
         for app_name, processes in app_name_to_processes_map.items():
             self.__add_processes_to_application_profile(application_name=app_name,
                                                         application_processes=processes)
+        self.__logger.info("Finished retrieving running processes information.")
+
+    def __exit_handler(self) -> None:
+        """
+        This is called when the Daemon exits.
+        """
+        application_profiles = self.get_registered_app_profiles_list()
+        AppProfileDataManager.save_app_profiles(application_profiles)
+
+    def run(self) -> None:
+        """
+        Starts the process handler as a daemon.
+        """
+        atexit.register(ProcessHandler.__exit_handler, self)
+        while True:
+            self.collect_running_processes_information()

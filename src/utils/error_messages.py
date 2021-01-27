@@ -6,3 +6,4 @@ anomaly_range_percent_not_in_range = "Minimum number of points in a bin to not b
                                      "larger than {}, but value provided is {} "
 empty_collection_message = "Empty collection: {}"
 file_support_type_error_message = "Only files with extension {} are supported. Received {}"
+method_not_implemented_error_message = "Method {} has not been implemented."
