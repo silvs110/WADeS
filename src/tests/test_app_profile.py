@@ -7,7 +7,7 @@ from psutil import AccessDenied
 from paths import SAMPLE_APP_PROF_DATA_PATH
 import wades_config
 from src.main.common.AppProfile import AppProfile
-from src.main.common.AppProfileAttribute import AppProfileAttribute
+from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
 from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
 from src.main.psHandler.ProcessHandler import ProcessHandler
 from src.tests.test_helpers import check_app_profile_has_the_right_format
@@ -101,8 +101,8 @@ def test_add_new_information_from_process() -> None:
             assert (len(app_profile.get_cpu_percentages()) > 0)
             assert (len(
                 app_profile.get_child_processes_count()) >= 0)  # A process may or may not have children processes
-            assert (len(app_profile.get_data_retrieval_timestamp()) == 1)
-            assert (app_profile.get_data_retrieval_timestamp()[0] == retrieval_time)
+            assert (len(app_profile.get_data_retrieval_timestamps()) == 1)
+            assert (app_profile.get_data_retrieval_timestamps()[0] == retrieval_time)
             number_of_processes_checked += 1
         except AccessDenied:  # Permission error if test is not run as admin.
             continue
@@ -303,7 +303,7 @@ def test_get_normalized_app_profile_data() -> None:
     app_profile = AppProfile(application_name=app_name)
     app_profile.set_value_from_dict(app_profile_dict=app_profile_dict)
     normalized_retrieved_data_size = \
-        len(app_profile.get_data_retrieval_timestamp()) - app_profile.get_latest_retrieved_data_size()
+        len(app_profile.get_data_retrieval_timestamps()) - app_profile.get_latest_retrieved_data_size()
 
     assert normalized_retrieved_data_size == 4
 

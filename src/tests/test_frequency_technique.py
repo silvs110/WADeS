@@ -3,9 +3,9 @@ from typing import Dict
 
 import pytest
 
-from src.main.common.AppProfileAttribute import AppProfileAttribute
-from src.main.common.AppSummaryAttribute import AppSummaryAttribute
-from src.main.common.RiskLevel import RiskLevel
+from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
+from src.main.common.enum.AppSummaryAttribute import AppSummaryAttribute
+from src.main.common.enum.RiskLevel import RiskLevel
 from wades_config import anomaly_detected_message
 from src.main.modeller.FrequencyTechnique import FrequencyTechnique
 from src.tests.test_helpers import build_application_profile_list

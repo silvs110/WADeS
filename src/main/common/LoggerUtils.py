@@ -31,8 +31,7 @@ class LoggerUtils:
         file_handler = RotatingFileHandler(filename=log_file,
                                            mode='a+',
                                            maxBytes=log_file_max_size_bytes,
-                                           backupCount=max_number_rotating_log_files
-                                           )
+                                           backupCount=max_number_rotating_log_files)
 
         file_handler.setFormatter(formatter)
         stream_handler = logging.StreamHandler()

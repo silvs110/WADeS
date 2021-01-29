@@ -1,7 +1,7 @@
 from typing import Dict, Set, List
 
 from src.main.common.AppProfile import AppProfile
-from src.main.common.AppProfileAttribute import AppProfileAttribute
+from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
 
 
 def build_application_profile_list(app_profiles_dict: Dict[str, dict], application_names: Set[str] = None) \

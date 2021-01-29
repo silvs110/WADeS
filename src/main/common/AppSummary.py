@@ -1,8 +1,10 @@
 import copy
+import json
 from typing import Union, Set
 
-from src.main.common.AppSummaryAttribute import AppSummaryAttribute
-from src.main.common.RiskLevel import RiskLevel
+from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
+from src.main.common.enum.AppSummaryAttribute import AppSummaryAttribute
+from src.main.common.enum.RiskLevel import RiskLevel
 
 
 class AppSummary:
@@ -72,14 +74,7 @@ class AppSummary:
                 data_retrieval_timestamps: [timestamp_1, timestamp_2, ...],
                 usernames: [user_1, user_2, ...]
                 memory_infos: [2342, 23215, 31573, ...],
-                opened_files:
-                    {
-                        timestamp_1 : {
-                            path_1: [permission_1, permission_2, ...],
-                            ...
-                        },
-                        ...
-                    },
+                opened_files:[[path_1, path_2, ...], [path_45, ...], ...],
                 cpu_percents: [0.2, 13.9, ...],
                 children_counts: [1, 5, 0, 4, ...]
             }
@@ -97,14 +92,7 @@ class AppSummary:
                 data_retrieval_timestamps: [timestamp_1, timestamp_2, ...],
                 usernames: [user_1, user_2, ...]
                 memory_infos: [2342, 23215, 31573, ...],
-                opened_files:
-                    {
-                        timestamp_1 : {
-                            path_1: [permission_1, permission_2, ...],
-                            ...
-                        },
-                        ...
-                    },
+                opened_files:[[path_1, path_2, ...], [path_45, ...], ...],
                 cpu_percents: [0.2, 13.9, ...],
                 children_counts: [1, 5, 0, 4, ...]
             }
@@ -137,3 +125,23 @@ class AppSummary:
             AppSummaryAttribute.modelled_app_details.name: copy.deepcopy(self.__modelled_app_details),
             AppSummaryAttribute.latest_retrieved_app_details.name: copy.deepcopy(self.__latest_retrieved_app_details)
         }
+
+    def __str__(self) -> str:
+        """
+        Overloads the str method to return a str representation of this object.
+        :return: The str representation of this object.
+        :rtype: str
+        """
+        latest_retrieved_app_details_copy = copy.deepcopy(self.__latest_retrieved_app_details)
+        latest_retrieved_app_details_copy[AppProfileAttribute.opened_files.name] = [
+            opened_file
+            for opened_files_batch in latest_retrieved_app_details_copy[AppProfileAttribute.opened_files.name]
+            for opened_file in opened_files_batch
+        ]
+        app_values = {
+            AppSummaryAttribute.app_name.name: self.__app_name,
+            AppSummaryAttribute.risk.name: self.__risk.name,
+            AppSummaryAttribute.error_message.name: self.__error_message,
+            AppSummaryAttribute.abnormal_attributes.name: list(self.__abnormal_attributes)
+        }
+        return json.dumps(app_values)

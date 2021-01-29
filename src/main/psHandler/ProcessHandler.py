@@ -1,20 +1,21 @@
+import atexit
 import copy
 import datetime
 import logging
 import time
-from typing import Dict, List, Set
+import traceback
+from typing import Dict, List, Set, Union
 
 import psutil
-import atexit
 
 from paths import LOGGER_DIR_PATH, LOGGER_TEST_DIR_PATH
 from src.main.common.AppProfile import AppProfile
 from src.main.common.Daemon import Daemon
 from src.main.common.LoggerUtils import LoggerUtils
-from src.main.common.ProcessAttribute import ProcessAttribute
+from src.main.common.enum.ProcessAttribute import ProcessAttribute
 from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
 from src.utils.error_messages import expected_type_but_received_message, expected_application_message
-from wades_config import log_file_extension
+from wades_config import retrieval_periodicity_sec, max_retrieval_periodicity_sec, log_file_extension
 
 
 class ProcessHandler(Daemon):
@@ -27,15 +28,21 @@ class ProcessHandler(Daemon):
         :param is_test: Flag for checking if this is called by a test. It changes the log path according to the value.
         :type is_test: bool
         """
-        logger_base_dir = LOGGER_DIR_PATH if not is_test else LOGGER_TEST_DIR_PATH
-        LoggerUtils.setup_logger(logger_name, logger_base_dir / (logger_name + log_file_extension))
-        self.__logger = logging.getLogger(logger_name)
-
+        self.__logger_base_dir = LOGGER_DIR_PATH if not is_test else LOGGER_TEST_DIR_PATH
+        self.__logger_name = logger_name
         self.__registered_app_profiles = dict()
-        self.__previous_retrieval_time = None
+        self.__latest_retrieval_time = None
         self.__attrs_to_retrieve = [enum.name for enum in ProcessAttribute if enum.name != 'children_count']
 
-        super(ProcessHandler, self).__init__(self.__logger, logger_name)
+        super(ProcessHandler, self).__init__(logger_name)
+
+    def get_latest_retrieved_data_timestamp(self) -> Union[None, datetime.datetime]:
+        """
+        Get the latest retrieved data timestamp.
+        :return: The latest retrieved timestamp. Returns None if no data has been retrieved.
+        :rtype: Union[None, datetime]
+        """
+        return self.__latest_retrieval_time
 
     def get_registered_app_profiles_as_dict(self) -> Dict[str, AppProfile]:
         """
@@ -81,7 +88,7 @@ class ProcessHandler(Daemon):
         """
         application_name_to_processes_map = dict()
         process_dicts = self.__get_process_info_as_list_of_dict()
-
+        logger = logging.getLogger(self.__logger_name)
         for process_dict in process_dicts:
 
             application_name = process_dict[ProcessAttribute.name.name]
@@ -89,7 +96,7 @@ class ProcessHandler(Daemon):
                 application_name_to_processes_map[application_name] = list()
             application_name_to_processes_map[application_name].append(process_dict)
 
-        self.__logger.info(
+        logger.info(
             "Found processes for the applications - {}".format(application_name_to_processes_map.keys())
         )
         return application_name_to_processes_map
@@ -100,10 +107,11 @@ class ProcessHandler(Daemon):
         :return: A list of dictionaries that contains information about the processes.
         :rtype: List[dict]
         """
-        self.__logger.info("Retrieving running processes information.")
+        logger = logging.getLogger(self.__logger_name)
+        logger.info("Retrieving running processes information.")
 
         processes_list = list()
-        self.__previous_retrieval_time = datetime.datetime.now()
+        self.__latest_retrieval_time = datetime.datetime.now()
         processes = list(psutil.process_iter())
         for process in processes:
             try:
@@ -120,9 +128,9 @@ class ProcessHandler(Daemon):
                 processes_list.append(process_info)
 
             except (psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess) as psutil_error:
-                self.__logger.exception(psutil_error)
+                logger.exception(psutil_error)
 
-        self.__logger.info("Finished retrieving and handling {} processes.".format(len(processes_list)))
+        logger.info("Finished retrieving and handling {} processes.".format(len(processes_list)))
 
         return processes_list
 
@@ -162,30 +170,46 @@ class ProcessHandler(Daemon):
             cpu_percentage = process[ProcessAttribute.cpu_percent.name]
             app_profile.add_new_information(memory_usage=rss_memory, child_processes_count=children_count, users=users,
                                             open_files=open_files, cpu_percentage=cpu_percentage,
-                                            data_retrieval_timestamp=self.__previous_retrieval_time)
+                                            data_retrieval_timestamp=self.__latest_retrieval_time)
 
     def collect_running_processes_information(self) -> None:
         """
         Collects running process information. To get the information call get_registered_app_profiles_as_dict.
         """
-        self.__logger.info("Started retrieving running processes information.")
+        logger = logging.getLogger(self.__logger_name)
+        logger.info("Started retrieving running processes information.")
         app_name_to_processes_map = self.__collect_running_processes_and_group_by_application()
         for app_name, processes in app_name_to_processes_map.items():
             self.__add_processes_to_application_profile(application_name=app_name,
                                                         application_processes=processes)
-        self.__logger.info("Finished retrieving running processes information.")
+        logger.info("Finished retrieving running processes information.")
 
     def __exit_handler(self) -> None:
         """
         This is called when the Daemon exits.
         """
-        application_profiles = self.get_registered_app_profiles_list()
-        AppProfileDataManager.save_app_profiles(application_profiles)
+        AppProfileDataManager.save_app_profiles(self.get_registered_app_profiles_list(),
+                                                retrieval_timestamp=self.__latest_retrieval_time)
 
     def run(self) -> None:
         """
         Starts the process handler as a daemon.
         """
-        atexit.register(ProcessHandler.__exit_handler, self)
+        atexit.register(self.__exit_handler, self)
+        LoggerUtils.setup_logger(self.__logger_name, self.__logger_base_dir / (self.__logger_name + log_file_extension))
+        logger = logging.getLogger(self.__logger_name)
         while True:
-            self.collect_running_processes_information()
+            # noinspection PyBroadException
+            try:
+                saved_app_profiles = AppProfileDataManager.get_saved_profiles()
+                self.__registered_app_profiles = \
+                    {app_profile.get_application_name(): app_profile for app_profile in saved_app_profiles}
+
+                self.collect_running_processes_information()
+                AppProfileDataManager.save_app_profiles(app_profiles=self.get_registered_app_profiles_list(),
+                                                        retrieval_timestamp=self.__latest_retrieval_time)
+                sleep_time = retrieval_periodicity_sec \
+                    if retrieval_periodicity_sec <= max_retrieval_periodicity_sec else max_retrieval_periodicity_sec
+                time.sleep(sleep_time)
+            except Exception:
+                logger.error(traceback.format_exc())
