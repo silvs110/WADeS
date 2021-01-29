@@ -4,7 +4,7 @@ import time
 import psutil
 
 import wades_config
-from src.main.common.AppProfileAttribute import AppProfileAttribute
+from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
 from src.utils.error_messages import expected_type_but_received_message, expected_value_but_received_message
 from typing import Union
 
@@ -63,7 +63,7 @@ class AppProfile:
         """
         return copy.deepcopy(self.__open_files)
 
-    def get_data_retrieval_timestamp(self) -> list:
+    def get_data_retrieval_timestamps(self) -> list:
         """
         Gets a list of all the retrieval times.
         :return: A list of retrieval times.

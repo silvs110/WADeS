@@ -178,12 +178,3 @@ class RangeKeyDict:
         :rtype: str
         """
         return idna.unicode(repr(self.__range_key_dict))
-
-
-if __name__ == '__main__':
-    range_dict = RangeKeyDict()
-    range_dict[1, 9] = 1200
-    range_dict[9] = 3
-    print(range_dict[9])
-
-    pprint(range_dict)

@@ -1,9 +1,11 @@
+
 import pytest
 
 
-from paths import SAMPLE_APP_PROF_DATA_PATH, APP_PROF_DATA_DIR_PATH
+from paths import SAMPLE_APP_PROF_DATA_PATH, APP_PROF_DATA_DIR_PATH, TEST_APP_PROF_DATA_FILE_PATH, \
+    TEST_RETRIEVAL_TIMESTAMP_FILE_PATH
 from src.main.common.AppProfile import AppProfile
-from src.main.common.AppProfileAttribute import AppProfileAttribute
+from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
 from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
 from src.main.psHandler.ProcessHandler import ProcessHandler
 from src.tests.test_helpers import check_app_profile_has_the_right_format
@@ -47,11 +49,11 @@ def test_save_app_profiles_with_input_validation() -> None:
 
     # None input for app_profile_file
     with pytest.raises(TypeError):
-        AppProfileDataManager.save_app_profiles(app_profiles=list(), app_profile_file=None)
+        AppProfileDataManager.save_app_profiles(app_profiles=list(), app_profile_file_path=None)
 
     # Invalid input type for app_profile_file
     with pytest.raises(TypeError):
-        AppProfileDataManager.save_app_profiles(app_profiles=list(), app_profile_file=5)
+        AppProfileDataManager.save_app_profiles(app_profiles=list(), app_profile_file_path=5)
 
 
 def test_save_and_get_profile_data() -> None:
@@ -59,16 +61,23 @@ def test_save_and_get_profile_data() -> None:
     Test save_app_profiles() and get_saved_profiles().
     Checks that saving and retrieving the app profiles does not modify the data.
     """
-    file_path_to_use = APP_PROF_DATA_DIR_PATH.absolute() / "app_data_manager_test.csv"
 
     process_handler = ProcessHandler(logger_name, True)
     process_handler.collect_running_processes_information()
     actual_app_profiles = process_handler.get_registered_app_profiles_list()
+    latest_retrieved_data_timestamp = process_handler.get_latest_retrieved_data_timestamp()
+    AppProfileDataManager.save_app_profiles(app_profiles=actual_app_profiles,
+                                            app_profile_file_path=TEST_APP_PROF_DATA_FILE_PATH,
+                                            retrieval_timestamp_file_path= TEST_RETRIEVAL_TIMESTAMP_FILE_PATH,
+                                            retrieval_timestamp=latest_retrieved_data_timestamp)
 
-    AppProfileDataManager.save_app_profiles(app_profiles=actual_app_profiles, app_profile_file=file_path_to_use)
-    expected_app_profiles = AppProfileDataManager.get_saved_profiles(app_profile_file=file_path_to_use)
-    file_path_to_use.unlink()
+    expected_app_profiles = AppProfileDataManager.get_saved_profiles(app_profile_file=TEST_APP_PROF_DATA_FILE_PATH)
+    TEST_APP_PROF_DATA_FILE_PATH.unlink()
 
+    saved_retrieved_timestamp = AppProfileDataManager.get_last_retrieved_data_timestamp(
+        retrieval_timestamp_file_path=TEST_RETRIEVAL_TIMESTAMP_FILE_PATH)
+
+    assert latest_retrieved_data_timestamp == saved_retrieved_timestamp
     assert len(expected_app_profiles) == len(actual_app_profiles)
 
     for index in range(0, len(expected_app_profiles)):
@@ -137,3 +146,4 @@ def test_get_app_profile_with_invalid_input() -> None:
     # Invalid input type for app_profile_file
     with pytest.raises(TypeError):
         AppProfileDataManager.get_saved_profiles(app_profile_file=5)
+

@@ -30,6 +30,6 @@ def test_collect_running_processes_information() -> None:
     assert len(registered_apps_names) > 1
     for app_profile in registered_apps_after_collection.values():
         assert isinstance(app_profile, AppProfile)
-        data_retrieval_timestamps = app_profile.get_data_retrieval_timestamp()
+        data_retrieval_timestamps = app_profile.get_data_retrieval_timestamps()
         assert len(data_retrieval_timestamps) >= 1  # Some apps may have more than one process
         assert data_retrieval_timestamps[0] is not None
