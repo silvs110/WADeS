@@ -66,7 +66,7 @@ if __name__ == "__main__":
             elif user_command in ["modeller pause", "modeller status", "modeller continue"]:
                 response = send_request(user_command)
                 print(response[0])
-            elif user_command in ["abnormal apps", "modelled apps"]:
+            elif user_command in ["abnormal apps", "modelled apps", "abnormal apps --history"]:
                 abnormal_apps = send_request(user_command)
                 pprint(abnormal_apps)
             elif user_command == "help":

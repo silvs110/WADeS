@@ -1,4 +1,5 @@
 import ast
+import json
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Union
@@ -7,7 +8,9 @@ import pandas
 
 import paths
 from src.main.common.AppProfile import AppProfile
+from src.main.common.AppSummary import AppSummary
 from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
+from src.main.common.enum.AppSummaryAttribute import AppSummaryAttribute
 from src.utils.error_messages import expected_type_but_received_message, file_support_type_error_message
 from wades_config import app_profile_retrieval_chunk_size, datetime_format
 
@@ -101,22 +104,24 @@ class AppProfileDataManager:
         AppProfileDataManager.__validate_path(app_profile_file)
 
         app_profiles = dict()
+        try:
+            for batch in pandas.read_csv(app_profile_file, chunksize=app_profile_retrieval_chunk_size):
+                dataframe_values = batch.values.tolist()
+                for app_profile_info_str_format in dataframe_values:
+                    app_profile_info = []
 
-        for batch in pandas.read_csv(app_profile_file, chunksize=app_profile_retrieval_chunk_size):
-            dataframe_values = batch.values.tolist()
-            for app_profile_info_str_format in dataframe_values:
-                app_profile_info = []
+                    for i in range(0, len(app_profile_info_str_format)):
+                        attribute = app_profile_info_str_format[i]
+                        if i > 1:
+                            attribute = ast.literal_eval(attribute)
 
-                for i in range(0, len(app_profile_info_str_format)):
-                    attribute = app_profile_info_str_format[i]
-                    if i > 1:
-                        attribute = ast.literal_eval(attribute)
-
-                    app_profile_info.append(attribute)
-                app_profile_zip = zip(AppProfileDataManager.__column_names, app_profile_info)
-                app_profile = dict(app_profile_zip)
-                app_name = app_profile_info_str_format[0]
-                app_profiles[app_name] = app_profile
+                        app_profile_info.append(attribute)
+                    app_profile_zip = zip(AppProfileDataManager.__column_names, app_profile_info)
+                    app_profile = dict(app_profile_zip)
+                    app_name = app_profile_info_str_format[0]
+                    app_profiles[app_name] = app_profile
+        except FileNotFoundError:
+            pass
 
         return app_profiles
 
@@ -160,9 +165,91 @@ class AppProfileDataManager:
         :return: The latest retrieved timestamp, which is saved on the specified file.
         :rtype: Unions[datetime, None]
         """
-        with open(retrieval_timestamp_file_path, "r") as file:
-            data = file.read()
-            try:
+        try:
+            with open(retrieval_timestamp_file_path, "r") as file:
+                data = file.read()
+
                 return datetime.strptime(data, datetime_format)
-            except ValueError:
-                return None
+        except (FileNotFoundError, ValueError):
+            return None
+
+    @staticmethod
+    def save_abnormal_apps(abnormal_apps: List[AppSummary]) -> None:
+        """
+        Saves the abnormal application in a csv file.
+        The path of the file the data is stored is defined by 'paths.APP_ANOM_FILE_PATH'.
+        :raises TypeError if abnormal apps is not of type 'List[AppSummary]'.
+        :param abnormal_apps: The list of abnormal apps to store.
+        :type abnormal_apps: List[AppSummary]
+        """
+        if not isinstance(abnormal_apps, list):
+            raise TypeError(
+                expected_type_but_received_message.format("abnormal_apps", "List[AppSummary]", abnormal_apps)
+            )
+
+        if len(abnormal_apps) <= 0:
+            return
+
+        data_retrieval_timestamp_name = AppProfileAttribute.data_retrieval_timestamps.name
+        abnormal_app_columns = [enum.name for enum in AppSummaryAttribute]
+        abnormal_app_columns.remove(AppSummaryAttribute.modelled_app_details.name)
+        abnormal_app_columns.remove(AppSummaryAttribute.latest_retrieved_app_details.name)
+        abnormal_app_columns.append(data_retrieval_timestamp_name)
+
+        abnormal_apps_parsed = list()
+        for abnormal_app in abnormal_apps:
+            if not isinstance(abnormal_app, AppSummary):
+                raise TypeError(
+                    expected_type_but_received_message.format("abnormal_apps", "List[AppSummary]", abnormal_app)
+                )
+            latest_retrieval_details = abnormal_app.get_latest_retrieved_app_details()
+            retrieval_timestamp = latest_retrieval_details[data_retrieval_timestamp_name][0]
+            abnormal_app_dict = json.loads(str(abnormal_app))
+            abnormal_app_dict[data_retrieval_timestamp_name] = retrieval_timestamp
+            abnormal_apps_parsed.append(abnormal_app_dict)
+
+        with_header = False if paths.APP_ANOM_FILE_PATH.exists() else True
+        data_frame = pandas.DataFrame(abnormal_apps_parsed, columns=abnormal_app_columns)
+        data_frame.to_csv(paths.APP_ANOM_FILE_PATH, index=False, mode='a+', header=with_header)
+
+    @staticmethod
+    def get_saved_abnormal_apps() -> Dict[str, List[Dict[str, str]]]:
+        """
+        Retrieved the saved abnormal apps from the path defined in 'paths.APP_ANOM_FILE_PATH'.
+        :return: The saved abnormal app profiles as dictionaries of application names and list of the abnormal values.
+            Format:
+                {
+                    "app_name": [
+                                    {
+                                        "error_message": "Some error message",
+                                        "risk": "high",
+                                        "abnormal_attributes": "[]",
+                                        "data_retrieval_timestamps": "2021-01-31 20:09:03:771116"
+                                    }, ...
+                                ],
+                    ...
+                }
+            Note: The values in the dictionaries stored in the list will be parsed into their correct type, however,
+            as it is not currently required to do so, it will be left as strings.
+        :rtype: Dict[str, List[Dict[str, str]]]
+        """
+        abnormal_apps_dict = dict()
+        data_retrieval_timestamp_name = AppProfileAttribute.data_retrieval_timestamps.name
+        abnormal_app_columns = [enum.name for enum in AppSummaryAttribute]
+        abnormal_app_columns.remove(AppSummaryAttribute.modelled_app_details.name)
+        abnormal_app_columns.remove(AppSummaryAttribute.latest_retrieved_app_details.name)
+        abnormal_app_columns.append(data_retrieval_timestamp_name)
+
+        try:
+            for batch in pandas.read_csv(paths.APP_ANOM_FILE_PATH, chunksize=app_profile_retrieval_chunk_size):
+                saved_records = batch.to_dict("records")
+                for record in saved_records:
+                    app_name = record[AppSummaryAttribute.app_name.name]
+                    if app_name not in abnormal_apps_dict:
+                        abnormal_apps_dict[app_name] = list()
+                    record.pop(AppSummaryAttribute.app_name.name)
+                    abnormal_apps_dict[app_name].append(record)
+        except FileNotFoundError:
+            pass
+
+        return abnormal_apps_dict

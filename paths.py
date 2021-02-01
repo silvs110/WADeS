@@ -1,6 +1,6 @@
 import pathlib
 
-from wades_config import app_profile_file_name, retrieval_timestamp_file_name
+from wades_config import app_profile_file_name, retrieval_timestamp_file_name, abnormal_apps_file_name
 
 # TEST PATH
 ROOT_PATH = pathlib.Path(__file__).parent.absolute()
@@ -18,6 +18,7 @@ WADES_DIR_PATH.mkdir(parents=True, exist_ok=True)
 APP_PROF_DATA_DIR_PATH = WADES_DIR_PATH / "data"
 APP_PROF_DATA_DIR_PATH.mkdir(parents=True, exist_ok=True)
 APP_PROF_DATA_FILE_PATH = APP_PROF_DATA_DIR_PATH / app_profile_file_name
+APP_ANOM_FILE_PATH = APP_PROF_DATA_DIR_PATH / abnormal_apps_file_name
 PID_FILES_DIR_PATH = WADES_DIR_PATH / "run"
 PID_FILES_DIR_PATH.mkdir(parents=True, exist_ok=True)
 LOGGER_DIR_PATH = WADES_DIR_PATH / "log"

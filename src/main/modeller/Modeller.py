@@ -7,17 +7,21 @@ import traceback
 from datetime import datetime
 from socket import socket
 
-from typing import List
+from typing import List, Dict
 
-from paths import LOGGER_DIR_PATH, LOGGER_TEST_DIR_PATH
+import pandas
+
+from paths import LOGGER_DIR_PATH, LOGGER_TEST_DIR_PATH, APP_ANOM_FILE_PATH
 from src.main.common.AppProfile import AppProfile
 from src.main.common.AppSummary import AppSummary
 from src.main.common.Daemon import Daemon
 from src.main.common.LoggerUtils import LoggerUtils
+from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
+from src.main.common.enum.AppSummaryAttribute import AppSummaryAttribute
 from src.main.common.enum.RiskLevel import RiskLevel
 from src.main.modeller.FrequencyTechnique import FrequencyTechnique
 from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
-from wades_config import log_file_extension, modeller_thread_port, localhost_address
+from wades_config import log_file_extension, modeller_thread_port, localhost_address, datetime_format
 
 
 class Modeller(Daemon):
@@ -32,7 +36,7 @@ class Modeller(Daemon):
         """
         self.__logger_base_dir = LOGGER_DIR_PATH if not is_test else LOGGER_TEST_DIR_PATH
         self.__logger_name = logger_name
-        self.__modelled_applications = list()
+        self.__modelled_applications = list()  # Doesn't store non-running applications.
         self.__previous_modelled_retrieval_timestamp = None
         self.__socket = None
 
@@ -110,7 +114,7 @@ class Modeller(Daemon):
         """
         Starts the modeller as a daemon. This method overrides the method in the parent class.
         """
-        # listening_thread = threading.Thread(target=self.listener_thread_run)
+
         LoggerUtils.setup_logger(self.__logger_name, self.__logger_base_dir / (self.__logger_name + log_file_extension))
         atexit.register(self.__exit_handler, self)
         modelling_thread = threading.Thread(target=self.modelling_thread_run)
@@ -130,10 +134,9 @@ class Modeller(Daemon):
             actual_last_retrieved_timestamp = AppProfileDataManager.get_last_retrieved_data_timestamp()
             # noinspection PyBroadException
             try:
-                if not self.__stop_modelling and (actual_last_retrieved_timestamp is None
-                                                  or self.__previous_modelled_retrieval_timestamp is None
-                                                  or (actual_last_retrieved_timestamp is None
-                                                      and self.__previous_modelled_retrieval_timestamp is None
+                if not self.__stop_modelling and (self.__previous_modelled_retrieval_timestamp is None
+                                                  or (actual_last_retrieved_timestamp is not None
+                                                      and self.__previous_modelled_retrieval_timestamp is not None
                                                       and actual_last_retrieved_timestamp >
                                                       self.__previous_modelled_retrieval_timestamp)):
                     application_profiles = AppProfileDataManager.get_saved_profiles()
@@ -142,6 +145,10 @@ class Modeller(Daemon):
                     self.__modelled_applications = Modeller.model_application_profiles(running_applications)
                     self.__previous_modelled_retrieval_timestamp = actual_last_retrieved_timestamp
                     logger.info("Finished modelling {} application profiles.".format(len(running_applications)))
+                    # Save data
+                    abnormal_applications = self.get_abnormal_applications()
+                    AppProfileDataManager.save_abnormal_apps(abnormal_applications)
+
             except Exception:
                 logger.error(traceback.format_exc())
 
@@ -165,9 +172,12 @@ class Modeller(Daemon):
                         encoded_data = data_to_send.encode()  # Defaults to utf-8
                         connection.sendall(encoded_data)
 
-                    elif data == "abnormal apps":
-                        data_to_send = Modeller.__convert_modelled_apps_to_json(
-                            modelled_apps=self.get_abnormal_applications())
+                    elif data.startswith("abnormal apps"):
+                        if data.endswith(" --history"):
+                            data_to_send = json.dumps(AppProfileDataManager.get_saved_abnormal_apps())
+                        else:
+                            data_to_send = Modeller.__convert_modelled_apps_to_json(
+                                modelled_apps=self.get_abnormal_applications())
                         encoded_data = data_to_send.encode()  # Defaults to utf-8
                         connection.sendall(encoded_data)
 
