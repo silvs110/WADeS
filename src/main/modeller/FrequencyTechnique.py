@@ -335,6 +335,7 @@ class FrequencyTechnique:
 
         return frequency_model
 
+    # noinspection DuplicatedCode
     def __detect_anomalies_in_numeric_attribute(self, previous_attribute_data: List[Union[int, float]],
                                                 latest_attribute_data: List[Union[int, float]]) -> \
             Tuple[bool, RiskLevel]:
@@ -384,24 +385,44 @@ class FrequencyTechnique:
 
         lower_outlier = q1 - (1.5 * iqr)
         upper_outlier = q3 + (1.5 * iqr)
+        lowest_point = min(previous_attribute_data)
+        highest_point = max(previous_attribute_data)
 
         for new_point in latest_attribute_data:
+            bin_count = attribute_model[new_point]
             if new_point < lower_outlier:
-                risk_level = RiskLevel.medium
 
-                if attribute_model[new_point] is not None \
-                        and attribute_model[new_point] > self.__min_count_non_anomalous \
-                        and risk_level != risk_level.low:
+                risk_level = RiskLevel.medium
+                distance_to_lowest_point = new_point - lowest_point
+                distance_to_outlier = lower_outlier - new_point
+                # If distance_to_lowest point is negative, the new point is lesser than the recorded lowest point.
+                if lower_outlier > lowest_point \
+                        and distance_to_lowest_point > 0 \
+                        and distance_to_outlier < distance_to_lowest_point:
+                    risk_level -= 1
+
+                if bin_count is not None \
+                        and bin_count > self.__min_count_non_anomalous \
+                        and risk_level > risk_level.low:
                     risk_level -= 1
                 return True, risk_level
 
             elif new_point > upper_outlier:
                 risk_level = RiskLevel.high
+                distance_to_highest_point = highest_point - new_point
+                distance_to_outlier = new_point - upper_outlier
+                # If the distance_to_highest_point is negative, the new point is greater than the recorded highest point
+                if upper_outlier < highest_point \
+                        and distance_to_highest_point > 0 \
+                        and distance_to_outlier < distance_to_highest_point:
 
-                if attribute_model[new_point] is not None \
-                        and attribute_model[new_point] > self.__min_count_non_anomalous \
-                        and risk_level != risk_level.low:
+                    risk_level -=1
+
+                if bin_count is not None \
+                        and bin_count > self.__min_count_non_anomalous \
+                        and risk_level > risk_level.low:
                     risk_level -= 1
+
                 return True, risk_level
 
         return False, RiskLevel.none
