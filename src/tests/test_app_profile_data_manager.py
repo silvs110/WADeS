@@ -1,9 +1,13 @@
 import pytest
+from numpy import nan
 
-from paths import SAMPLE_APP_PROF_DATA_PATH, APP_PROF_DATA_DIR_PATH, TEST_APP_PROF_DATA_FILE_PATH, \
+import paths
+from paths import SAMPLE_APP_PROF_DATA_PATH, TEST_APP_PROF_DATA_FILE_PATH, \
     TEST_RETRIEVAL_TIMESTAMP_FILE_PATH
 from src.main.common.AppProfile import AppProfile
 from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
+from src.main.common.enum.AppSummaryAttribute import AppSummaryAttribute
+from src.main.modeller.FrequencyTechnique import FrequencyTechnique
 from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
 from src.main.psHandler.ProcessHandler import ProcessHandler
 from src.tests.test_helpers import check_app_profile_has_the_right_format
@@ -145,3 +149,43 @@ def test_get_app_profile_with_invalid_input() -> None:
     # Invalid input type for app_profile_file
     with pytest.raises(TypeError):
         AppProfileDataManager.get_saved_profiles(app_profile_file=5)
+
+
+def test_save_and_get_abnormal_apps_from_file() -> None:
+    """
+    Test saving and getting abnormal apps from a file is in the correct format and has the right values.
+    """
+    saved_app_profile = AppProfileDataManager.get_saved_profiles(paths.SAMPLE_APP_PROF_DATA_PATH)
+    ft = FrequencyTechnique(is_test=True)
+    modelled_apps = ft(saved_app_profile)
+    # Note: Some of the saved app profiles are not anomalous, however this test verifies that they are saved in correct
+    # format.
+    AppProfileDataManager.save_abnormal_apps(modelled_apps, paths.TEST_APP_ANOM_FILE_PATH)
+
+    actual_saved_abnormal_apps = AppProfileDataManager.get_saved_abnormal_apps(paths.TEST_APP_ANOM_FILE_PATH)
+    expected_saved_abnormal_apps = dict()
+    for modelled_app in modelled_apps:
+        app_name = modelled_app.get_app_name()
+        abnormal_attrs = list(modelled_app.get_abnormal_attrs())
+        risk_level = modelled_app.get_risk_level()
+        error_message = modelled_app.get_error_message()
+        latest_retrieved_timestamp = modelled_app.get_latest_retrieved_app_details() \
+            [AppProfileAttribute.data_retrieval_timestamps.name][0]
+        if app_name not in expected_saved_abnormal_apps:
+            expected_saved_abnormal_apps[app_name] = list()
+        abnormal_app_saved_entries = {
+            AppSummaryAttribute.abnormal_attributes.name: set(abnormal_attrs),
+            AppSummaryAttribute.risk.name: risk_level.name,
+            AppSummaryAttribute.error_message.name: error_message if error_message is not None else nan,
+            AppProfileAttribute.data_retrieval_timestamps.name: latest_retrieved_timestamp
+        }
+        expected_saved_abnormal_apps[app_name].append(abnormal_app_saved_entries)
+
+    # Changing the abnormal attribute values to set as during modelling the order of those values may change.
+    for saved_abnormal_app in actual_saved_abnormal_apps.values():
+        for abnormal_entry in saved_abnormal_app:
+            # noinspection PyTypeChecker
+            abnormal_entry[AppSummaryAttribute.abnormal_attributes.name] = \
+                set(abnormal_entry[AppSummaryAttribute.abnormal_attributes.name])
+
+    assert expected_saved_abnormal_apps == actual_saved_abnormal_apps

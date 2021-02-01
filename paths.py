@@ -7,6 +7,7 @@ ROOT_PATH = pathlib.Path(__file__).parent.absolute()
 TEST_APP_PROF_DATA_DIR_PATH = ROOT_PATH / "data"
 TEST_APP_PROF_DATA_DIR_PATH.mkdir(parents=True, exist_ok=True)
 TEST_APP_PROF_DATA_FILE_PATH = TEST_APP_PROF_DATA_DIR_PATH / app_profile_file_name
+TEST_APP_ANOM_FILE_PATH = TEST_APP_PROF_DATA_DIR_PATH / abnormal_apps_file_name
 SAMPLE_APP_PROF_DATA_PATH = ROOT_PATH / "src/tests/sample_data/sample_app_profile_data.csv"
 LOGGER_TEST_DIR_PATH = ROOT_PATH / "log"
 LOGGER_TEST_DIR_PATH.mkdir(parents=True, exist_ok=True)
