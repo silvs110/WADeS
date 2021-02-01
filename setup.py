@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(
-    name='psutil',
+    name='wades',
     version='1.0',
     packages=[''],
     url='',

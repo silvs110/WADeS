@@ -1,6 +1,4 @@
-
 import pytest
-
 
 from paths import SAMPLE_APP_PROF_DATA_PATH, APP_PROF_DATA_DIR_PATH, TEST_APP_PROF_DATA_FILE_PATH, \
     TEST_RETRIEVAL_TIMESTAMP_FILE_PATH
@@ -25,6 +23,7 @@ Input Validation tests:
 """
 
 logger_name = "testAppProfileDataManager"
+
 
 # noinspection PyTypeChecker
 def test_save_app_profiles_with_input_validation() -> None:
@@ -68,7 +67,7 @@ def test_save_and_get_profile_data() -> None:
     latest_retrieved_data_timestamp = process_handler.get_latest_retrieved_data_timestamp()
     AppProfileDataManager.save_app_profiles(app_profiles=actual_app_profiles,
                                             app_profile_file_path=TEST_APP_PROF_DATA_FILE_PATH,
-                                            retrieval_timestamp_file_path= TEST_RETRIEVAL_TIMESTAMP_FILE_PATH,
+                                            retrieval_timestamp_file_path=TEST_RETRIEVAL_TIMESTAMP_FILE_PATH,
                                             retrieval_timestamp=latest_retrieved_data_timestamp)
 
     expected_app_profiles = AppProfileDataManager.get_saved_profiles(app_profile_file=TEST_APP_PROF_DATA_FILE_PATH)
@@ -146,4 +145,3 @@ def test_get_app_profile_with_invalid_input() -> None:
     # Invalid input type for app_profile_file
     with pytest.raises(TypeError):
         AppProfileDataManager.get_saved_profiles(app_profile_file=5)
-

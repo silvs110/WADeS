@@ -1,5 +1,4 @@
 import copy
-from pprint import pprint
 from typing import Tuple, Any, Union, KeysView, ValuesView, ItemsView, Dict, Iterator
 
 import idna
