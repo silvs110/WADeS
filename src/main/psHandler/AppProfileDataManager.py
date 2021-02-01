@@ -20,6 +20,7 @@ class AppProfileDataManager:
     __supported_file_extensions = [".csv"]
     __column_names = [attr.name for attr in AppProfileAttribute]  # Order is important
     __default_retrieval_timestamp_file = paths.RETRIEVAL_TIMESTAMP_FILE_PATH
+    __default_abnormal_apps_file = paths.APP_ANOM_FILE_PATH
 
     @staticmethod
     def get_saved_profiles(app_profile_file: Union[str, Path] = __default_app_profiles_file) -> List[AppProfile]:
@@ -28,7 +29,7 @@ class AppProfileDataManager:
         If no app_profile_file value is specified, it uses the default file, defined in `paths.py`.
         :raises TypeError if app_profile_file is not of type 'str' or 'pathlib.Path'.
         :raises ValueError if the file extension of the path is not supported.
-        :param app_profile_file: The name of the file to save the application profiles.
+        :param app_profile_file: The path of the file to save the application profiles.
         :type app_profile_file: Union[str, pathlib.Path]
         :return: a list of AppProfiles.
         :rtype: List[AppProfile]
@@ -95,7 +96,7 @@ class AppProfileDataManager:
         If no app_profile_file value is specified, it uses the default file, defined in `paths.py`.
         :raises TypeError if app_profile_file is not of type 'str' or 'pathlib.Path'.
         :raises ValueError if the file extension of the path is not supported.
-        :param app_profile_file: The name of the file to save the application profiles.
+        :param app_profile_file: The path of the file to save the application profiles.
         :type app_profile_file: Union[str, pathlib.Path]
         :return: A dictionary of the application profile names to their respective AppProfile information.
         :rtype: Dict[str, dict]
@@ -131,7 +132,7 @@ class AppProfileDataManager:
         Validates that the application profile file has a supported file extension.
         :raises TypeError if app_profile_file is not of type 'str' or 'pathlib.Path'.
         :raises ValueError if the file extension of the path is not supported.
-        :param app_profile_file: The name of the file to save the application profiles.
+        :param app_profile_file: The path of the file to save the application profiles.
         :type app_profile_file: Union[str, pathlib.Path]
         """
         if not isinstance(app_profile_file, (str, Path)):
@@ -174,19 +175,30 @@ class AppProfileDataManager:
             return None
 
     @staticmethod
-    def save_abnormal_apps(abnormal_apps: List[AppSummary]) -> None:
+    def save_abnormal_apps(abnormal_apps: List[AppSummary],
+                           abnormal_apps_file_path: Path = __default_abnormal_apps_file) -> None:
         """
         Saves the abnormal application in a csv file.
-        The path of the file the data is stored is defined by 'paths.APP_ANOM_FILE_PATH'.
-        :raises TypeError if abnormal apps is not of type 'List[AppSummary]'.
+        :raises TypeError if abnormal apps is not of type 'List[AppSummary]',
+                or if abnormal_apps_file_path is not of type 'pathlib.Path'
         :param abnormal_apps: The list of abnormal apps to store.
         :type abnormal_apps: List[AppSummary]
+        :param abnormal_apps_file_path: The file path to save the abnormal apps.
+                It defaults to 'paths.APP_ANOM_FILE_PATH'.
+        :type abnormal_apps_file_path: pathlib.Path
         """
         if not isinstance(abnormal_apps, list):
             raise TypeError(
                 expected_type_but_received_message.format("abnormal_apps", "List[AppSummary]", abnormal_apps)
             )
-
+        if not isinstance(abnormal_apps_file_path, Path):
+            raise TypeError(
+                expected_type_but_received_message.format(
+                    "abnormal_apps_file_path",
+                    "pathlib.Path",
+                    abnormal_apps_file_path
+                )
+            )
         if len(abnormal_apps) <= 0:
             return
 
@@ -208,31 +220,46 @@ class AppProfileDataManager:
             abnormal_app_dict[data_retrieval_timestamp_name] = retrieval_timestamp
             abnormal_apps_parsed.append(abnormal_app_dict)
 
-        with_header = False if paths.APP_ANOM_FILE_PATH.exists() else True
+        with_header = False if abnormal_apps_file_path.exists() else True
         data_frame = pandas.DataFrame(abnormal_apps_parsed, columns=abnormal_app_columns)
-        data_frame.to_csv(paths.APP_ANOM_FILE_PATH, index=False, mode='a+', header=with_header)
+        data_frame.to_csv(abnormal_apps_file_path, index=False, mode='a+', header=with_header)
 
     @staticmethod
-    def get_saved_abnormal_apps() -> Dict[str, List[Dict[str, str]]]:
+    def get_saved_abnormal_apps(abnormal_apps_file_path: Path = __default_abnormal_apps_file) \
+            -> Dict[str, List[Dict[str, Union[str, list]]]]:
         """
-        Retrieved the saved abnormal apps from the path defined in 'paths.APP_ANOM_FILE_PATH'.
+        Retrieved the saved abnormal apps from a csv file.
+        :raises TypeError if abnormal_apps_file_path is not of type 'pathlib.Path'
+        :param abnormal_apps_file_path: The file path to save the abnormal apps.
+                It defaults to 'paths.APP_ANOM_FILE_PATH'.
+        :type abnormal_apps_file_path: pathlib.Path
         :return: The saved abnormal app profiles as dictionaries of application names and list of the abnormal values.
+                If the file doesn't exist it returns an empty dictionary.
             Format:
                 {
                     "app_name": [
                                     {
                                         "error_message": "Some error message",
                                         "risk": "high",
-                                        "abnormal_attributes": "[]",
+                                        "abnormal_attributes": [],
                                         "data_retrieval_timestamps": "2021-01-31 20:09:03:771116"
                                     }, ...
                                 ],
                     ...
                 }
-            Note: The values in the dictionaries stored in the list will be parsed into their correct type, however,
-            as it is not currently required to do so, it will be left as strings.
+
         :rtype: Dict[str, List[Dict[str, str]]]
         """
+
+        if not isinstance(abnormal_apps_file_path, Path):
+            raise TypeError(
+                expected_type_but_received_message.format(
+                    "abnormal_apps_file_path",
+                    "pathlib.Path",
+                    abnormal_apps_file_path
+                )
+            )
+
         abnormal_apps_dict = dict()
         data_retrieval_timestamp_name = AppProfileAttribute.data_retrieval_timestamps.name
         abnormal_app_columns = [enum.name for enum in AppSummaryAttribute]
@@ -241,13 +268,15 @@ class AppProfileDataManager:
         abnormal_app_columns.append(data_retrieval_timestamp_name)
 
         try:
-            for batch in pandas.read_csv(paths.APP_ANOM_FILE_PATH, chunksize=app_profile_retrieval_chunk_size):
+            for batch in pandas.read_csv(abnormal_apps_file_path, chunksize=app_profile_retrieval_chunk_size):
                 saved_records = batch.to_dict("records")
                 for record in saved_records:
                     app_name = record[AppSummaryAttribute.app_name.name]
                     if app_name not in abnormal_apps_dict:
                         abnormal_apps_dict[app_name] = list()
                     record.pop(AppSummaryAttribute.app_name.name)
+                    record[AppSummaryAttribute.abnormal_attributes.name] = \
+                        ast.literal_eval(record[AppSummaryAttribute.abnormal_attributes.name])
                     abnormal_apps_dict[app_name].append(record)
         except FileNotFoundError:
             pass

@@ -21,7 +21,8 @@ class FrequencyTechnique:
         :param min_number_count_non_anomalous: The minimum number of data points in the same bin as the 'anomalous'
             point so as to not consider it a high risk anomaly.
         :type min_number_count_non_anomalous: int
-        :param is_test: Flag for running the modelling algorithm in test mode. Defaults to False.
+        :param is_test: Flag for running the modelling algorithm in test mode. Defaults to False. In test mode the
+                technique ignores the minimum number of data required to model the application.
         :type is_test: bool
         """
 

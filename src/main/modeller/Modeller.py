@@ -4,24 +4,18 @@ import json
 import logging
 import threading
 import traceback
-from datetime import datetime
 from socket import socket
+from typing import List
 
-from typing import List, Dict
-
-import pandas
-
-from paths import LOGGER_DIR_PATH, LOGGER_TEST_DIR_PATH, APP_ANOM_FILE_PATH
+from paths import LOGGER_DIR_PATH, LOGGER_TEST_DIR_PATH
 from src.main.common.AppProfile import AppProfile
 from src.main.common.AppSummary import AppSummary
 from src.main.common.Daemon import Daemon
 from src.main.common.LoggerUtils import LoggerUtils
-from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
-from src.main.common.enum.AppSummaryAttribute import AppSummaryAttribute
 from src.main.common.enum.RiskLevel import RiskLevel
 from src.main.modeller.FrequencyTechnique import FrequencyTechnique
 from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
-from wades_config import log_file_extension, modeller_thread_port, localhost_address, datetime_format
+from wades_config import log_file_extension, modeller_thread_port, localhost_address
 
 
 class Modeller(Daemon):
