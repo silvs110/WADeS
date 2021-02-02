@@ -1,7 +1,6 @@
 virtual_env="${HOME}/wades_env"
 activate_bin_path="${HOME}/wades_env/bin/activate"
 
-
 function create_venv {
   if [ ! -d "${virtual_env}" ];
   then
@@ -11,7 +10,7 @@ function create_venv {
     source "${activate_bin_path}"
     echo Installing dependencies...
     pip3 install -r ./requirements.txt
-    echo SUCESS: Finished installing all dependencies
+    echo SUCCESS: Finished installing all dependencies
   else
     echo virtual environment "${virtual_env}" already exists.
   fi || {
@@ -23,5 +22,4 @@ function create_venv {
 
 sudo apt-get install python3-venv
 create_venv
-python3 ./pshandler_starter.py
-python3 ./modeller_starter.py
+nohup ./reviver.sh &
