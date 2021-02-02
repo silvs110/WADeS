@@ -1,3 +1,13 @@
+<div align="center">
+    <h1 align="center">WADeS</h1>
+    <p align="center">
+    An intrusion detection system that detect anomalies by analyzing the resources used by the applications running in the 
+    system.
+    <br />
+    <a href="https://github.com/silvs110/WADeS/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/silvs110/WADeS/issues">Request Feature</a>
+    </p>
 
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
@@ -5,19 +15,7 @@
 [![Issues][issues-shield]][issues-url]
 [![GPL v3.0 License][license-shield]][license-url]
 
-
-
-
-<h1 align="center">WADeS</h1>
-
-<p align="center">
-An intrusion detection system that detect anomalies by analyzing the resources used by the applications running in the 
-system.
-<br />
-<a href="https://github.com/silvs110/WADeS/issues">Report Bug</a>
-·
-<a href="https://github.com/silvs110/WADeS/issues">Request Feature</a>
-</p>
+</div>
 
 
 <!-- TABLE OF CONTENTS -->
@@ -94,6 +92,6 @@ to run on your system, but we make no claims with respect of functionality.
 [issues-shield]: https://img.shields.io/github/issues/silvs110/WADeS.svg?style=for-the-badge
 [issues-url]: https://github.com/silvs110/WADeS/issues
 [license-shield]: https://img.shields.io/github/license/silvs110/WADeS.svg?style=for-the-badge
-[license-url]: https://github.com/silvs110/WADeS/blob/master/LICENSE.txt
+[license-url]: https://github.com/silvs110/WADeS/blob/master/LICENSE
 
 
