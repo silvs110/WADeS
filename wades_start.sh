@@ -22,4 +22,5 @@ function create_venv {
 
 sudo apt-get install python3-venv
 create_venv
-nohup ./reviver.sh &
+python3 ./pshandler_starter.py
+python3 ./modeller_starter.py

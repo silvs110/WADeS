@@ -17,3 +17,4 @@ localhost_address = "127.0.0.1"
 retrieval_timestamp_file_name = "retrieval_timestamp.txt"
 app_profile_file_name = "app_profiles.csv"
 abnormal_apps_file_name = "abnormal_apps.csv"
+run_modeller_server = False
