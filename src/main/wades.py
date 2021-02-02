@@ -1,5 +1,6 @@
 import json
 import socket
+import traceback
 from pprint import pprint
 from typing import Any
 
@@ -20,7 +21,11 @@ def send_request(request: str) -> Any:
     if not isinstance(request, str):
         raise TypeError(expected_type_but_received_message.format('request', 'str', request))
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((localhost_address, modeller_thread_port))
+    try:
+        client.connect((localhost_address, modeller_thread_port))
+    except ConnectionRefusedError:
+        return "Modeller service is not accepting requests. Check configuration file and " \
+               "change run_modeller_server value to True."
     client.sendall(request.encode())
     data = b''
     while True:
@@ -65,7 +70,7 @@ if __name__ == "__main__":
                 modeller.terminate()
             elif user_command in ["modeller pause", "modeller status", "modeller continue"]:
                 response = send_request(user_command)
-                print(response[0])
+                pprint(response)
             elif user_command in ["abnormal apps", "modelled apps", "abnormal apps --history"]:
                 abnormal_apps = send_request(user_command)
                 pprint(abnormal_apps)

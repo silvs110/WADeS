@@ -5,6 +5,7 @@ import logging
 import threading
 import traceback
 from socket import socket
+from time import sleep
 from typing import List
 
 from paths import LOGGER_DIR_PATH, LOGGER_TEST_DIR_PATH
@@ -15,7 +16,9 @@ from src.main.common.LoggerUtils import LoggerUtils
 from src.main.common.enum.RiskLevel import RiskLevel
 from src.main.modeller.FrequencyTechnique import FrequencyTechnique
 from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
-from wades_config import log_file_extension, modeller_thread_port, localhost_address
+from src.utils.error_messages import expected_type_but_received_message
+from wades_config import log_file_extension, modeller_thread_port, localhost_address, run_modeller_server, \
+    retrieval_periodicity_sec
 
 
 class Modeller(Daemon):
@@ -33,7 +36,7 @@ class Modeller(Daemon):
         self.__modelled_applications = list()  # Doesn't store non-running applications.
         self.__previous_modelled_retrieval_timestamp = None
         self.__socket = None
-
+        self.__run_server = run_modeller_server
         self.__stop_modelling = False
         super(Modeller, self).__init__(logger_name)
 
@@ -58,6 +61,15 @@ class Modeller(Daemon):
         """
         return copy.deepcopy(self.__modelled_applications)
 
+    def is_modeller_server_set_up(self) -> bool:
+        """
+        Checks if the modeller server is running.
+        This is only for the part of the modeller responsible for retrieving modelled data.
+        :return: True, if the modeller server is running, False, otherwise.
+        :rtype: bool
+        """
+        return self.__run_server
+
     def get_abnormal_applications(self) -> List[AppSummary]:
         """
         Gets the list of abnormal applications.
@@ -71,6 +83,20 @@ class Modeller(Daemon):
             if app_risk_level is not RiskLevel.none:
                 abnormal_applications.append(app_summary)
         return abnormal_applications
+
+    def set_modeller_service_flag(self, run_modeller_server_new_value: bool) -> None:
+        """
+        Set the new value for running the modeller server.
+        If True, the server is executed and information can be send to display.
+        If False, only the modelling of the application is executed.
+        :raises TypeError if run_modeller_server_new_value is not of type 'bool'.
+        :param run_modeller_server_new_value: The new value of the flag to run the modeller server.
+        :type run_modeller_server_new_value: bool
+        """
+        if not isinstance(run_modeller_server_new_value, bool):
+            raise TypeError(expected_type_but_received_message.format("run_modeller_server_new_value", "bool",
+                                                                      run_modeller_server_new_value))
+        self.__run_server = run_modeller_server_new_value
 
     @staticmethod
     def __filter_out_non_running_applications(app_profiles: List[AppProfile]) -> List[AppProfile]:
@@ -111,13 +137,16 @@ class Modeller(Daemon):
 
         LoggerUtils.setup_logger(self.__logger_name, self.__logger_base_dir / (self.__logger_name + log_file_extension))
         atexit.register(self.__exit_handler, self)
-        modelling_thread = threading.Thread(target=self.modelling_thread_run)
-        modelling_thread.daemon = True
-        modelling_thread.start()
-        self.__socket = socket()
-        self.__socket.bind((localhost_address, modeller_thread_port))
-        self.__socket.listen()
-        self.listener_run()
+        if self.__run_server:
+            modelling_thread = threading.Thread(target=self.modelling_thread_run)
+            modelling_thread.daemon = True
+            modelling_thread.start()
+            self.__socket = socket()
+            self.__socket.bind((localhost_address, modeller_thread_port))
+            self.__socket.listen()
+            self.listener_run()
+        else:
+            self.modelling_thread_run()
 
     def modelling_thread_run(self) -> None:
         """
@@ -142,6 +171,8 @@ class Modeller(Daemon):
                     # Save data
                     abnormal_applications = self.get_abnormal_applications()
                     AppProfileDataManager.save_abnormal_apps(abnormal_applications)
+                else:
+                    sleep(retrieval_periodicity_sec)
 
             except Exception:
                 logger.error(traceback.format_exc())
