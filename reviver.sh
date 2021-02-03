@@ -2,7 +2,7 @@ run_path="${HOME}/.wades/run"
 ps_handler_file_path="${run_path}/ProcessHandler.pid"
 modeller_file_path="${run_path}/Modeller.pid"
 
-echo $$ >> "${HOME}/.wades/run/wades_reviver.pid"
+echo $$ > "${HOME}/.wades/run/wades_reviver.pid"
 
 while true
   do
@@ -17,4 +17,5 @@ while true
       echo modeller is not running. Rerunning it.
       python3 ./modeller_starter.py
     fi
+  sleep 5m
   done

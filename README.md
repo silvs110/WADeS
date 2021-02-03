@@ -51,7 +51,7 @@ Note: You need to have root permission to install this tool.
 1. Download the code.
 2. Change the configurations in `wades_config.py`. This step is optional, unless you want to interact with WADeS. 
    In that case, change the value of `run_modeller_server` to True.   
-3. Run 'start_wades.sh' to create, install and run the background daemons. (You have to input your password).
+3. Run `setup_and_start.sh` to create, install and run the background daemons. (You have to input your password).
 4. To interact with WADeS, run `python3 src/main/wades.py`
 
 ## Usage
