@@ -10,3 +10,4 @@ class ProcessAttribute(Enum):
     open_files = 5
     cpu_percent = 6
     children_count = 7
+    num_threads = 8

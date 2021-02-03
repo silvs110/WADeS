@@ -97,7 +97,7 @@ class ProcessHandler(Daemon):
             application_name_to_processes_map[application_name].append(process_dict)
 
         logger.info(
-            "Found processes for the applications - {}".format(application_name_to_processes_map.keys())
+            "Found processes for applications - {}".format(application_name_to_processes_map.keys())
         )
         return application_name_to_processes_map
 
@@ -168,9 +168,11 @@ class ProcessHandler(Daemon):
             open_files = process.get(ProcessAttribute.open_files.name, list())
             open_files = open_files if open_files is not None else list()
             cpu_percentage = process[ProcessAttribute.cpu_percent.name]
+            num_threads = process[ProcessAttribute.num_threads.name]
             app_profile.add_new_information(memory_usage=rss_memory, child_processes_count=children_count, users=users,
                                             open_files=open_files, cpu_percentage=cpu_percentage,
-                                            data_retrieval_timestamp=self.__latest_retrieval_time)
+                                            data_retrieval_timestamp=self.__latest_retrieval_time,
+                                            threads_number=num_threads)
 
     def collect_running_processes_information(self) -> None:
         """

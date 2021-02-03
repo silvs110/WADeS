@@ -28,6 +28,7 @@ class AppProfile:
         self.__data_retrieval_timestamp = list()
         self.__child_processes_count = list()
         self.__users = list()
+        self.__threads_numbers = list()
 
     def get_application_name(self) -> str:
         """
@@ -154,6 +155,7 @@ class AppProfile:
         memory_info = process.memory_info()
         child_process_count = len(process.children())
         username = process.username()
+        threads_number = process.num_threads()
         process.cpu_percent()
 
         time.sleep(0.1)  # wait for cpu_percent to return a meaningful value.
@@ -165,13 +167,16 @@ class AppProfile:
         self.__child_processes_count.append(child_process_count)
         self.__users.extend(username)
         self.__cpu_percent_usages.append(cpu_percentage)
+        self.__threads_numbers.append(threads_number)
 
     def add_new_information(self, memory_usage: int, child_processes_count: int, users: list, open_files: list,
-                            cpu_percentage: float, data_retrieval_timestamp: datetime.datetime) -> None:
+                            cpu_percentage: float, data_retrieval_timestamp: datetime.datetime,
+                            threads_number: int) -> None:
         """
         Adds new information about this application. Adds for a specific process associated to the application.
+
         :raises TypeError if one of the following criteria is met:
-            - memory_usage or child_processes_count is not of type 'int'
+            - memory_usage, child_processes_count, or num_threads are not of type 'int'
             - users is not of type 'set'
             - open_files is not of type 'list'
             - cpu_percentage is not of type 'float'
@@ -190,6 +195,8 @@ class AppProfile:
         :type cpu_percentage: float
         :param data_retrieval_timestamp: The time the data was retrieved.
         :type data_retrieval_timestamp: datetime.datetime
+        :param threads_number: The number of threads associated to this process.
+        :type threads_number: int
         """
         if not isinstance(memory_usage, int):
             raise TypeError(expected_type_but_received_message.format("memory_usages", "int", memory_usage))
@@ -205,10 +212,13 @@ class AppProfile:
         if not (isinstance(data_retrieval_timestamp, datetime.datetime)):
             raise TypeError(expected_type_but_received_message.format("data_retrieval_timestamp", "datetime.datetime",
                                                                       data_retrieval_timestamp))
-        if memory_usage < 0 or child_processes_count < 0 or cpu_percentage < 0:
+        if not (isinstance(threads_number, int)):
+            raise TypeError(expected_type_but_received_message.format("threads_number", "int",
+                                                                      threads_number))
+        if any(attribute < 0 for attribute in [memory_usage, child_processes_count, cpu_percentage, threads_number]):
             raise ValueError(
-                "Arguments memory_usage, child_processes_count and cpu_percentage cannot have negative value, "
-                "but received [%s, %s, %s]".format(
+                "Arguments memory_usage, child_processes_count, cpu_percentage, and threads_number cannot have "
+                "negative value, but received [%s, %s, %s]".format(
                     memory_usage, child_processes_count, cpu_percentage))
         if data_retrieval_timestamp.replace(tzinfo=None) > datetime.datetime.now():
             raise ValueError("Argument data_retrieval_timestamp cannot be newer than current time. Value receive: %s"
@@ -220,6 +230,7 @@ class AppProfile:
         self.__users.extend(users)
         self.__cpu_percent_usages.append(cpu_percentage)
         self.__data_retrieval_timestamp.append(data_retrieval_timestamp)
+        self.__threads_numbers.append(threads_number)
 
     def add_open_files(self, open_files: list, data_retrieval_timestamp: datetime.datetime) -> None:
         """
@@ -254,7 +265,8 @@ class AppProfile:
                 opened_files: [[path_1, path_2, ...], [path_45, ...], ...],
                 cpu_percents: [0.2, 13.9, ...],
                 children_counts: [1, 5, 0, 4, ...]
-                data_retrieval_timestamps: [timestamp_1, timestamp_2, ...]
+                data_retrieval_timestamps: [timestamp_1, timestamp_2, ...],
+                threads_numbers:[0, 1, 3, 9, ...]
             }
         All timestamp have 'YYYY-MM-DD HH:MM:SS:microseconds' format.
         :rtype: dict
@@ -273,7 +285,8 @@ class AppProfile:
             AppProfileAttribute.opened_files.name: self.__open_files,
             AppProfileAttribute.data_retrieval_timestamps.name: str_data_retrieval_timestamps,
             AppProfileAttribute.children_counts.name: self.__child_processes_count,
-            AppProfileAttribute.usernames.name: self.__users
+            AppProfileAttribute.usernames.name: self.__users,
+            AppProfileAttribute.threads_numbers.name: self.__threads_numbers
         }
 
         return app_attrs
@@ -298,6 +311,7 @@ class AppProfile:
             - cpu_percents
             - children_counts
             - data_retrieval_timestamps
+            - threads_numbers
         :param app_profile_dict: the new values of the application profile.
         Format:
             {
@@ -307,8 +321,9 @@ class AppProfile:
                 memory_infos: [2342, 23215, 31573, ...],
                 opened_files: [[path_1, path_2, ...], [path_45, ...], ...],
                 cpu_percents: [0.2, 13.9, ...],
-                children_counts: [1, 5, 0, 4, ...]
-                data_retrieval_timestamps: [timestamp_1, timestamp_2, ...]
+                children_counts: [1, 5, 0, 4, ...],
+                data_retrieval_timestamps: [timestamp_1, timestamp_2, ...],
+                threads_numbers:[0, 1, 3, 9, ...]
             }
         All timestamp should have 'YYYY-MM-DD HH:MM:SS:microseconds' format or setting the new values will fail.
         :type app_profile_dict: dict
@@ -329,10 +344,12 @@ class AppProfile:
         child_process_counts = app_profile_dict[AppProfileAttribute.children_counts.name]
         users = app_profile_dict[AppProfileAttribute.usernames.name]
         opened_files = app_profile_dict[AppProfileAttribute.opened_files.name]
+        threads_numbers = app_profile_dict[AppProfileAttribute.threads_numbers.name]
 
         if not (all(isinstance(rss_mem, int) for rss_mem in memory_usages) and
                 all(isinstance(cpu_percent, float) for cpu_percent in cpu_percents) and
                 all(isinstance(children_count, int) for children_count in child_process_counts) and
+                all(isinstance(threads_number, int) for threads_number in threads_numbers) and
                 all(isinstance(user, str) for user in users) and
                 (isinstance(opened_files, list) and all(
                     isinstance(files, (list, set)) and isinstance(file, str) for files in
@@ -346,7 +363,7 @@ class AppProfile:
         self.__child_processes_count = child_process_counts
         self.__users = users
         self.__open_files = opened_files
-
+        self.__threads_numbers = threads_numbers
         str_data_retrieval_timestamps = app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name]
         self.__data_retrieval_timestamp = [datetime.datetime.strptime(retrieval_timestamp, wades_config.datetime_format)
                                            for retrieval_timestamp in str_data_retrieval_timestamps]
@@ -375,7 +392,8 @@ class AppProfile:
                 memory_infos: [2342, 23215, 31573, ...],
                 opened_files: [[path_1, path_2, ...], [path_45, ...], ...],
                 cpu_percents: [0.2, 13.9, ...],
-                children_counts: [1, 5, 0, 4, ...]
+                children_counts: [1, 5, 0, 4, ...],
+                threads_numbers:[0, 1, 3, 9, ...]
             }
         :rtype: dict
         """
@@ -404,6 +422,8 @@ class AppProfile:
 
         app_profile_dict[AppProfileAttribute.opened_files.name] = \
             app_profile_dict[AppProfileAttribute.opened_files.name][-last_retrieved_data_size:]
+        app_profile_dict[AppProfileAttribute.threads_numbers.name] = \
+            app_profile_dict[AppProfileAttribute.threads_numbers.name][-last_retrieved_data_size:]
 
         return app_profile_dict
 
@@ -420,7 +440,8 @@ class AppProfile:
                 memory_infos: [2342, 23215, 31573, ...],
                 opened_files: [[path_1, path_2, ...], [path_45, ...], ...],
                 cpu_percents: [0.2, 13.9, ...],
-                children_counts: [1, 5, 0, 4, ...]
+                children_counts: [1, 5, 0, 4, ...],
+                threads_numbers:[0, 1, 3, 9, ...]
             }
         :rtype: dict
         """
@@ -449,5 +470,8 @@ class AppProfile:
 
         app_profile_dict[AppProfileAttribute.opened_files.name] = \
             app_profile_dict[AppProfileAttribute.opened_files.name][:old_data_size]
+
+        app_profile_dict[AppProfileAttribute.threads_numbers.name] = \
+            app_profile_dict[AppProfileAttribute.threads_numbers.name][:old_data_size]
 
         return app_profile_dict

@@ -26,7 +26,8 @@ def build_application_profile_list(app_profiles_dict: Dict[str, dict], applicati
                         },
                     cpu_percents: [0.2, 13.9, ...],
                     children_counts: [1, 5, 0, 4, ...]
-                    data_retrieval_timestamps: [timestamp_1, timestamp_2, ...]
+                    data_retrieval_timestamps: [timestamp_1, timestamp_2, ...],
+                    threads_numbers:[0, 1, 3, 9, ...]
                 },
                 ...
             }
@@ -76,6 +77,9 @@ def check_app_profile_has_the_right_format(app_name: str, app_profile: dict) -> 
 
     users = app_profile[AppProfileAttribute.usernames.name]
     assert all(isinstance(user, str) for user in users)
+
+    threads_numbers = app_profile[AppProfileAttribute.threads_numbers.name]
+    assert all(isinstance(threads_number, int) for threads_number in threads_numbers)
 
     opened_files = app_profile[AppProfileAttribute.opened_files.name]
     assert isinstance(opened_files, list)
