@@ -121,58 +121,70 @@ def test_add_information_with_input_validation() -> None:
     with pytest.raises(TypeError):
         app_profile.add_new_information(memory_usage=None, child_processes_count=1, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=0.98,
-                                        open_files=list())
+                                        open_files=list(), threads_number=3)
     # Invalid type for child_processes_count
     with pytest.raises(TypeError):
         app_profile.add_new_information(memory_usage=1, child_processes_count=None, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=0.98,
-                                        open_files=list())
+                                        open_files=list(), threads_number=3)
     # Invalid type for users
     with pytest.raises(TypeError):
         app_profile.add_new_information(memory_usage=1, child_processes_count=1, users=None,
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=0.98,
-                                        open_files=list())
+                                        open_files=list(), threads_number=3)
 
     # Invalid type for data_retrieval_timestamp
     with pytest.raises(TypeError):
         app_profile.add_new_information(memory_usage=1, child_processes_count=0, users=list(),
                                         data_retrieval_timestamp=None, cpu_percentage=0.98,
-                                        open_files=list())
+                                        open_files=list(), threads_number=3)
 
     # Invalid type for cpu_percentage
     with pytest.raises(TypeError):
         app_profile.add_new_information(memory_usage=1, child_processes_count=1, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage="",
-                                        open_files=list())
+                                        open_files=list(), threads_number=3)
     # Invalid type for open_files
     with pytest.raises(TypeError):
         app_profile.add_new_information(memory_usage=1, child_processes_count=0, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=0.98,
-                                        open_files=None)
+                                        open_files=None, threads_number=3)
+
+    # Invalid type for threads_number
+    with pytest.raises(TypeError):
+        app_profile.add_new_information(memory_usage=1, child_processes_count=0, users=list(),
+                                        data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=0.98,
+                                        open_files=None, threads_number=None)
     # Negative value for memory_usage
     with pytest.raises(ValueError):
         app_profile.add_new_information(memory_usage=-1, child_processes_count=1, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=0.98,
-                                        open_files=list())
+                                        open_files=list(), threads_number=3)
 
     # Negative value for child_processes_count
     with pytest.raises(ValueError):
         app_profile.add_new_information(memory_usage=1, child_processes_count=-1, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=0.98,
-                                        open_files=list())
+                                        open_files=list(), threads_number=3)
 
     # Negative value for cpu_percentage
     with pytest.raises(ValueError):
         app_profile.add_new_information(memory_usage=1, child_processes_count=1, users=list(),
                                         data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=-0.5,
-                                        open_files=list())
+                                        open_files=list(), threads_number=3)
     # data_retrieval_timestamp with value set to tomorrow
     with pytest.raises(ValueError):
         tomorrow_date = datetime.date.today() + datetime.timedelta(days=1)
         tomorrow_datetime = datetime.datetime.combine(tomorrow_date, datetime.time.min)
         app_profile.add_new_information(memory_usage=1, child_processes_count=1, users=list(),
                                         data_retrieval_timestamp=tomorrow_datetime, cpu_percentage=-0.5,
-                                        open_files=list())
+                                        open_files=list(), threads_number=3)
+
+    # Negative value for threads_number
+    with pytest.raises(ValueError):
+        app_profile.add_new_information(memory_usage=1, child_processes_count=1, users=list(),
+                                        data_retrieval_timestamp=datetime.datetime.now(), cpu_percentage=5.0,
+                                        open_files=list(), threads_number=-1)
 
 
 def test_add_open_files_with_input_validation() -> None:
@@ -326,7 +338,9 @@ def test_get_normalized_app_profile_data() -> None:
             app_profile_dict[AppProfileAttribute.opened_files.name][:normalized_retrieved_data_size],
 
         AppProfileAttribute.data_retrieval_timestamps.name:
-            app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name][:normalized_retrieved_data_size]
+            app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name][:normalized_retrieved_data_size],
+        AppProfileAttribute.threads_numbers.name:
+            app_profile_dict[AppProfileAttribute.threads_numbers.name][:normalized_retrieved_data_size]
     }
 
     actual_normalized_app_profile = app_profile.get_previously_retrieved_data()
@@ -368,7 +382,9 @@ def test_get_latest_retrieved_data() -> None:
         AppProfileAttribute.opened_files.name:
             app_profile_dict[AppProfileAttribute.opened_files.name][-latest_retrieved_data_size:],
         AppProfileAttribute.data_retrieval_timestamps.name:
-            app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name][-latest_retrieved_data_size:]
+            app_profile_dict[AppProfileAttribute.data_retrieval_timestamps.name][-latest_retrieved_data_size:],
+        AppProfileAttribute.threads_numbers.name:
+            app_profile_dict[AppProfileAttribute.threads_numbers.name][-latest_retrieved_data_size:]
     }
     actual_latest_app_profile_data = app_profile.get_latest_retrieved_data()
 

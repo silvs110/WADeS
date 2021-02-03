@@ -76,7 +76,8 @@ class AppSummary:
                 memory_infos: [2342, 23215, 31573, ...],
                 opened_files:[[path_1, path_2, ...], [path_45, ...], ...],
                 cpu_percents: [0.2, 13.9, ...],
-                children_counts: [1, 5, 0, 4, ...]
+                children_counts: [1, 5, 0, 4, ...],
+                threads_numbers:[0, 1, 3, 9, ...]
             }
         :return: The latest retrieved data.
         :rtype: dict
@@ -94,7 +95,8 @@ class AppSummary:
                 memory_infos: [2342, 23215, 31573, ...],
                 opened_files:[[path_1, path_2, ...], [path_45, ...], ...],
                 cpu_percents: [0.2, 13.9, ...],
-                children_counts: [1, 5, 0, 4, ...]
+                children_counts: [1, 5, 0, 4, ...],
+                threads_numbers:[0, 1, 3, 9, ...]
             }
         :return: The latest retrieved data.
         :rtype: dict

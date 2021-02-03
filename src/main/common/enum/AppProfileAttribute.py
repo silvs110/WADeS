@@ -11,4 +11,6 @@ class AppProfileAttribute(Enum):
     opened_files = 5
     cpu_percents = 6
     children_counts = 7
-    data_retrieval_timestamps = 8
+    threads_numbers = 8
+    data_retrieval_timestamps = 9
+

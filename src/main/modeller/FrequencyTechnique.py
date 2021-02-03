@@ -128,7 +128,7 @@ class FrequencyTechnique:
             )
 
         numeric_attribute_names = {AppProfileAttribute.memory_infos.name, AppProfileAttribute.cpu_percents.name,
-                                   AppProfileAttribute.children_counts.name}
+                                   AppProfileAttribute.children_counts.name, AppProfileAttribute.threads_numbers.name}
         error_message = None
         max_risk_level = RiskLevel.none
         anomalous_attrs = set()
