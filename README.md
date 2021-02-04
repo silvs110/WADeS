@@ -41,6 +41,8 @@ identify abnormal behaviour. This tool models the following process attributes u
 * child processes count
 * opened files
 * users (owners)
+* number of threads
+* number of IPv4 and IPv6 connections
 
 ## Prerequisites
 1. Python 3.8 +

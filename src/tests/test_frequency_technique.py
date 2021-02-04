@@ -121,6 +121,12 @@ def test_execute_frequency_modelling_with_invalid_inputs() -> None:
                                                       RiskLevel.high, {AppProfileAttribute.threads_numbers.name}, True),
                              AppModellingTestScenario("app_with_abnormal_low_threads_count",
                                                       RiskLevel.medium, {AppProfileAttribute.threads_numbers.name},
+                                                      True),
+                             AppModellingTestScenario("app_with_abnormal_high_connections_count",
+                                                      RiskLevel.high, {AppProfileAttribute.connections_numbers.name},
+                                                      True),
+                             AppModellingTestScenario("app_with_abnormal_low_connections_count",
+                                                      RiskLevel.medium, {AppProfileAttribute.connections_numbers.name},
                                                       True)
                          ]
                          )

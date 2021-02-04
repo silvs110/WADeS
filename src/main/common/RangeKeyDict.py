@@ -22,7 +22,7 @@ class RangeKeyDict:
         """
         for found_key, value in self.__range_key_dict.items():
             if (isinstance(key, tuple) and key == found_key) or (
-                    isinstance(key, (int, float)) and self.key(key) == found_key):
+                    isinstance(key, (int, float)) and self.__key(key) == found_key):
                 return value
         return None
 
@@ -46,7 +46,7 @@ class RangeKeyDict:
             self.__range_key_dict[key] = value
 
         else:
-            key_found = self.key(key)
+            key_found = self.__key(key)
             if key_found is None:
                 # noinspection PyArgumentList
                 key_found = (value, value + 1)
@@ -68,7 +68,7 @@ class RangeKeyDict:
         """
         return self.__range_key_dict.values()
 
-    def key(self, key_item: Union[float, int]) -> Union[None, Tuple[Union[float, int], Union[float, int]]]:
+    def __key(self, key_item: Union[float, int]) -> Union[None, Tuple[Union[float, int], Union[float, int]]]:
         """
         Gets the key as tuple from the provided key (float, int). Finds the range the key_item belongs to.
         :param key_item: the key to find the range for.
@@ -79,7 +79,7 @@ class RangeKeyDict:
         assert isinstance(key_item, (float, int))
 
         for key, value in self.__range_key_dict.items():
-            if key[0] <= key_item < key[1]:
+            if key[0] <= key_item <= key[1]:
                 return key
         return None
 
@@ -113,7 +113,7 @@ class RangeKeyDict:
         :param key: The key to delete.
         :type key: Union[float, int, Tuple[Union[float, int], Union[float, int]]]
         """
-        del self.__range_key_dict[self.key(key)]
+        del self.__range_key_dict[self.__key(key)]
 
     def clear(self) -> None:
         """
@@ -147,8 +147,8 @@ class RangeKeyDict:
         """
         keys_to_pop = set()
         for key in keys:
-            if key is not None and self.key(key) is not None:
-                keys_to_pop.add(self.key(key))
+            if key is not None and self.__key(key) is not None:
+                keys_to_pop.add(self.__key(key))
 
         self.__range_key_dict.pop(keys_to_pop)
 
@@ -160,7 +160,7 @@ class RangeKeyDict:
         :return: True if the key is found, False otherwise.
         :rtype: bool
         """
-        return key in self.__range_key_dict or (isinstance(key, (int, float)) and self.key(key) is not None)
+        return key in self.__range_key_dict or (isinstance(key, (int, float)) and self.__key(key) is not None)
 
     def __iter__(self) -> Iterator:
         """

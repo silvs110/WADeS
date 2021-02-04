@@ -128,7 +128,8 @@ class FrequencyTechnique:
             )
 
         numeric_attribute_names = {AppProfileAttribute.memory_infos.name, AppProfileAttribute.cpu_percents.name,
-                                   AppProfileAttribute.children_counts.name, AppProfileAttribute.threads_numbers.name}
+                                   AppProfileAttribute.children_counts.name, AppProfileAttribute.threads_numbers.name,
+                                   AppProfileAttribute.connections_numbers.name}
         error_message = None
         max_risk_level = RiskLevel.none
         anomalous_attrs = set()
@@ -417,7 +418,7 @@ class FrequencyTechnique:
                         and distance_to_highest_point > 0 \
                         and distance_to_outlier < distance_to_highest_point:
 
-                    risk_level -=1
+                    risk_level -= 1
 
                 if bin_count is not None \
                         and bin_count > self.__min_count_non_anomalous \

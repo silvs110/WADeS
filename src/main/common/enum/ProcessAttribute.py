@@ -11,3 +11,4 @@ class ProcessAttribute(Enum):
     cpu_percent = 6
     children_count = 7
     num_threads = 8
+    connections = 9

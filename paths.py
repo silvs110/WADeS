@@ -14,7 +14,7 @@ LOGGER_TEST_DIR_PATH.mkdir(parents=True, exist_ok=True)
 TEST_RETRIEVAL_TIMESTAMP_FILE_PATH = TEST_APP_PROF_DATA_DIR_PATH / retrieval_timestamp_file_name
 
 # NON-TEST PATHS
-WADES_DIR_PATH = pathlib.Path.home() / ".wades"
+WADES_DIR_PATH = ROOT_PATH / ".wades"
 WADES_DIR_PATH.mkdir(parents=True, exist_ok=True)
 APP_PROF_DATA_DIR_PATH = WADES_DIR_PATH / "data"
 APP_PROF_DATA_DIR_PATH.mkdir(parents=True, exist_ok=True)
