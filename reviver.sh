@@ -1,4 +1,4 @@
-run_path="./.wades/run"
+run_path="${PWD}/.wades/run"
 ps_handler_file_path="${run_path}/ProcessHandler.pid"
 modeller_file_path="${run_path}/Modeller.pid"
 
