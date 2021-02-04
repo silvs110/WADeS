@@ -1,2 +1,2 @@
-kill "$(cat "${HOME}/.wades/run/wades_reviver.pid")" || echo "Process is not running."
-python3 ./stop_daemons.py
+sudo kill "$(cat "./.wades/run/wades_reviver.pid")" || echo "Process is not running."
+sudo python3 ./stop_daemons.py

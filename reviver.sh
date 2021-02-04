@@ -1,21 +1,28 @@
-run_path="${HOME}/.wades/run"
+run_path="./.wades/run"
 ps_handler_file_path="${run_path}/ProcessHandler.pid"
 modeller_file_path="${run_path}/Modeller.pid"
 
-echo $$ > "${HOME}/.wades/run/wades_reviver.pid"
+
 
 while true
   do
     if [ ! -f "${ps_handler_file_path}" ]
     then
-      echo ps_handler is not running. Rerunning it.
-      python3 ./pshandler_starter.py
+      echo $(date -u): ps_handler is not running. Rerunning it.
+      sudo python3 ./pshandler_starter.py
+      sleep 5s
     fi
 
     if [ ! -f "${modeller_file_path}" ]
     then
-      echo modeller is not running. Rerunning it.
-      python3 ./modeller_starter.py
+      echo $(date -u): modeller is not running. Rerunning it.
+      sudo python3 ./modeller_starter.py
+      sleep 5s
+    fi
+
+    if [ ! -d "${run_path}/wades_reviver.pid" ]
+    then
+      echo $$ > "${run_path}/wades_reviver.pid"
     fi
   sleep 5m
   done

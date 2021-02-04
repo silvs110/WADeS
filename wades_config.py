@@ -1,7 +1,8 @@
 import logging
 
 datetime_format = "%Y-%m-%d %H:%M:%S:%f"
-prohibited_files = {"/etc/passwd", "/etc/shadow", "/etc/bashrc"}
+prohibited_files = {"/etc/passwd", "/etc/shadow", "/etc/bashrc", "/etc/profile", "/etc/hosts", "/proc/cpuinfo",
+                    "/proc/stat", "/proc/swaps", "/etc/aliases"}
 anomaly_detected_message = "Anomalies found."
 app_profile_retrieval_chunk_size = 10 ** 6
 minimum_retrieval_size_for_modelling = 10

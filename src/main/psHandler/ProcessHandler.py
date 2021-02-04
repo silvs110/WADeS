@@ -4,6 +4,7 @@ import datetime
 import logging
 import time
 import traceback
+from pprint import pprint
 from typing import Dict, List, Set, Union
 
 import psutil
@@ -126,6 +127,9 @@ class ProcessHandler(Daemon):
                 process_info = process.as_dict(attrs=self.__attrs_to_retrieve)
                 process_info[ProcessAttribute.children_count.name] = len(process.children())
                 processes_list.append(process_info)
+                # Default value of "inet IPV4 and IPv6" connections
+                connections = process_info[ProcessAttribute.connections.name]
+                process_info[ProcessAttribute.connections.name] = len(connections) if connections is not None else 0
 
             except (psutil.AccessDenied, psutil.NoSuchProcess, psutil.ZombieProcess) as psutil_error:
                 logger.exception(psutil_error)
@@ -169,10 +173,11 @@ class ProcessHandler(Daemon):
             open_files = open_files if open_files is not None else list()
             cpu_percentage = process[ProcessAttribute.cpu_percent.name]
             num_threads = process[ProcessAttribute.num_threads.name]
+            connections_num = process[ProcessAttribute.connections.name]
             app_profile.add_new_information(memory_usage=rss_memory, child_processes_count=children_count, users=users,
                                             open_files=open_files, cpu_percentage=cpu_percentage,
                                             data_retrieval_timestamp=self.__latest_retrieval_time,
-                                            threads_number=num_threads)
+                                            threads_number=num_threads, connections_num=connections_num)
 
     def collect_running_processes_information(self) -> None:
         """
@@ -215,3 +220,4 @@ class ProcessHandler(Daemon):
                 time.sleep(sleep_time)
             except Exception:
                 logger.error(traceback.format_exc())
+
