@@ -156,7 +156,7 @@ def test_save_and_get_abnormal_apps_from_file() -> None:
     Test saving and getting abnormal apps from a file is in the correct format and has the right values.
     """
     saved_app_profile = AppProfileDataManager.get_saved_profiles(paths.SAMPLE_APP_PROF_DATA_PATH)
-    ft = FrequencyTechnique(is_test=True)
+    ft = FrequencyTechnique()
     modelled_apps = ft(saved_app_profile)
     # Note: Some of the saved app profiles are not anomalous, however this test verifies that they are saved in correct
     # format.

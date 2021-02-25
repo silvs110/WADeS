@@ -2,18 +2,18 @@ from typing import List, Union, Tuple, Set
 
 import numpy
 
+import wades_config
 from src.main.common.AppProfile import AppProfile
 from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
 from src.main.common.AppSummary import AppSummary
 from src.main.common.RangeKeyDict import RangeKeyDict
 from src.main.common.enum.RiskLevel import RiskLevel
-from wades_config import prohibited_files, anomaly_detected_message, minimum_retrieval_size_for_modelling
 from src.utils.error_messages import anomaly_range_percent_not_in_range, expected_type_but_received_message
 
 
 class FrequencyTechnique:
 
-    def __init__(self, min_number_count_non_anomalous: int = 5, is_test: bool = False) -> None:
+    def __init__(self, min_number_count_non_anomalous: int = 5) -> None:
         """
         Initializes this class.
         :raises TypeError if min_number_count_non_anomalous is not of type 'int'.
@@ -21,9 +21,6 @@ class FrequencyTechnique:
         :param min_number_count_non_anomalous: The minimum number of data points in the same bin as the 'anomalous'
             point so as to not consider it a high risk anomaly.
         :type min_number_count_non_anomalous: int
-        :param is_test: Flag for running the modelling algorithm in test mode. Defaults to False. In test mode the
-                technique ignores the minimum number of data required to model the application.
-        :type is_test: bool
         """
 
         if not isinstance(min_number_count_non_anomalous, int):
@@ -41,14 +38,14 @@ class FrequencyTechnique:
         # This variable stores the minimum number of data points in the same bin as the detected 'anomalous' point.
         # It is useful in case of modelling new data and sets how strict does the technique can be.
         self.__min_count_non_anomalous = min_number_count_non_anomalous
-        self.__is_test = is_test
 
     def get_minimum_count_non_anomalous(self) -> int:
         """
         Gets the value of min_count_non_anomalous.
         This variable stores the minimum number of data points in the same bin as the detected 'anomalous' point.
         It is useful in case of modelling new data and sets how strict does the technique can be.
-        :return:
+        :return: minimum count for a point inside a bin to be considered non anomalous.
+        :rtype: int
         """
         return self.__min_count_non_anomalous
 
@@ -137,7 +134,7 @@ class FrequencyTechnique:
         normalized_app_profile_data = app_profile.get_previously_retrieved_data()
         latest_app_profile_data = app_profile.get_latest_retrieved_data()
 
-        if len(latest_app_profile_data) >= minimum_retrieval_size_for_modelling or self.__is_test:
+        if wades_config.is_modelling:
 
             # Numeric data
             is_anomalous_numeric, numeric_max_risk_level, anomalous_attrs = \
@@ -155,7 +152,7 @@ class FrequencyTechnique:
             anomalous_attrs.update(non_numeric_anomalous_attrs)
 
             if is_anomalous_non_numeric or is_anomalous_numeric:
-                error_message = anomaly_detected_message
+                error_message = wades_config.anomaly_detected_message
         app_summary = AppSummary(app_name=app_profile.get_application_name(),
                                  error_message=error_message,
                                  risk=max_risk_level,
@@ -293,7 +290,7 @@ class FrequencyTechnique:
             FrequencyTechnique.__detect_anomalies_in_non_numeric_attribute_with_blacklisting(
                 normalized_attribute_data=normalized_files_flat,
                 last_retrieved_attribute_data=last_retrieved_files_flat,
-                blacklisted_values=prohibited_files)
+                blacklisted_values=wades_config.prohibited_files)
 
         if is_files_anomalous_blacklist or is_files_anomalous_whitelist:
             non_numeric_anomalous_attrs.add(AppProfileAttribute.opened_files.name)
@@ -379,7 +376,8 @@ class FrequencyTechnique:
                     latest_attribute_data
                 )
             )
-
+        if len(previous_attribute_data) < wades_config.minimum_retrieval_size_for_modelling:
+            return False, RiskLevel.none
         attribute_model = FrequencyTechnique.__build_dict_frequency(data=previous_attribute_data)
 
         q1, q3 = numpy.percentile(previous_attribute_data, [25, 75])
@@ -468,6 +466,11 @@ class FrequencyTechnique:
 
         anomaly_found = False
         risk_level = RiskLevel.none
+
+        # when there is not enough data
+        if len(normalized_attribute_data) < wades_config.minimum_retrieval_size_for_modelling:
+            return False, RiskLevel.none, set()
+
         last_retrieved_data_set = set(last_retrieved_attribute_data)
 
         new_data_accessed = last_retrieved_data_set.difference(normalized_attribute_data)

@@ -3,6 +3,7 @@ from typing import Dict
 
 import pytest
 
+import wades_config
 from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
 from src.main.common.enum.AppSummaryAttribute import AppSummaryAttribute
 from src.main.common.enum.RiskLevel import RiskLevel
@@ -130,6 +131,7 @@ def test_execute_frequency_modelling_with_invalid_inputs() -> None:
                                                       True)
                          ]
                          )
+@pytest.mark.usefixtures('setup_and_clean_up_modelling_requirements')
 def test_execute_frequency_modelling_with_anomalies(saved_test_app_profiles_dict: Dict[str, dict],
                                                     modelling_test_scenario: AppModellingTestScenario) -> None:
     """
@@ -141,7 +143,7 @@ def test_execute_frequency_modelling_with_anomalies(saved_test_app_profiles_dict
     """
     app_profiles = build_application_profile_list(app_profiles_dict=saved_test_app_profiles_dict,
                                                   application_names={modelling_test_scenario.app_name})
-    fq = FrequencyTechnique(is_test=True)
+    fq = FrequencyTechnique()
     app_summaries = fq(data=app_profiles)
 
     assert len(app_summaries) == 1

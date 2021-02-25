@@ -6,6 +6,7 @@ prohibited_files = {"/etc/passwd", "/etc/shadow", "/etc/bashrc", "/etc/profile",
 anomaly_detected_message = "Anomalies found."
 app_profile_retrieval_chunk_size = 10 ** 6
 minimum_retrieval_size_for_modelling = 10
+is_modelling = True
 retrieval_periodicity_sec = 1.5 * 60
 max_retrieval_periodicity_sec = 60 * 60  # One hour
 logging_level = logging.INFO
