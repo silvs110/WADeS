@@ -3,6 +3,7 @@ from typing import Dict
 
 import pytest
 
+import wades_config
 from paths import SAMPLE_APP_PROF_DATA_PATH, LOGGER_TEST_DIR_PATH, TEST_APP_PROF_DATA_DIR_PATH
 from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
 from src.utils.error_messages import empty_collection_message
@@ -29,6 +30,21 @@ def remove_all_create_files() -> None:
     Cleans up all the directories created for testing.
     """
     yield
-    directories_to_remove =[LOGGER_TEST_DIR_PATH, TEST_APP_PROF_DATA_DIR_PATH]
+    directories_to_remove = [LOGGER_TEST_DIR_PATH, TEST_APP_PROF_DATA_DIR_PATH]
     for directory_to_remove in directories_to_remove:
         shutil.rmtree(directory_to_remove)
+
+
+@pytest.fixture
+def setup_and_clean_up_modelling_requirements() -> None:
+    """
+    Sets up and cleans up the modelling requirements by changing the is_modelling value to true and minimum modelling
+    size to 3.
+    """
+    is_modelling = wades_config.is_modelling
+    wades_config.is_modelling = True
+    minimum_retrieval_size_for_modelling = wades_config.minimum_retrieval_size_for_modelling
+    wades_config.minimum_retrieval_size_for_modelling = 3
+    yield
+    wades_config.is_modelling = is_modelling
+    wades_config.minimum_retrieval_size_for_modelling = minimum_retrieval_size_for_modelling
