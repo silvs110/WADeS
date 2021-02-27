@@ -277,13 +277,14 @@ def test_dict_format() -> None:
     Test dict_format() for an application profile. It checks that the returned value is in the right format.
     """
 
-    process_handler = ProcessHandler(logger_name, True)
+    process_handler = ProcessHandler(logger_name)
     process_handler.collect_running_processes_information()
-    registered_applications = process_handler.get_registered_app_profiles_list()
-    for registered_app in registered_applications:
-        registered_app_dict = registered_app.dict_format()
+    registered_app_names = process_handler.get_registered_app_profile_names()
+    for registered_app_name in registered_app_names:
+        app_profile = AppProfileDataManager.get_saved_profile(registered_app_name)
+        registered_app_dict = app_profile.dict_format()
 
-        check_app_profile_has_the_right_format(app_name=registered_app.get_application_name(),
+        check_app_profile_has_the_right_format(app_name=registered_app_name,
                                                app_profile=registered_app_dict)
         # Check that all datetime values are in string format. Will throw an error if it is not in the right format.
         object_created_timestamp = registered_app_dict[AppProfileAttribute.date_created_timestamp.name]
@@ -321,8 +322,7 @@ def test_get_normalized_app_profile_data() -> None:
     app_name = "common_case_app"
     last_retrieved_timestamp = "2021-01-d 23:33:03:575118"
 
-    app_profiles = AppProfileDataManager.get_saved_profiles_as_dict(SAMPLE_APP_PROF_DATA_PATH)
-    app_profile_dict = app_profiles[app_name]
+    app_profile_dict = AppProfileDataManager.get_saved_profile_as_dict(app_name, SAMPLE_APP_PROF_DATA_PATH)
 
     app_profile = AppProfile(application_name=app_name)
     app_profile.set_value_from_dict(app_profile_dict=app_profile_dict)
@@ -370,8 +370,7 @@ def test_get_latest_retrieved_data() -> None:
     """
     app_name = "common_case_app"
 
-    app_profiles = AppProfileDataManager.get_saved_profiles_as_dict(SAMPLE_APP_PROF_DATA_PATH)
-    app_profile_dict = app_profiles[app_name]
+    app_profile_dict = AppProfileDataManager.get_saved_profile_as_dict(app_name, SAMPLE_APP_PROF_DATA_PATH)
 
     app_profile = AppProfile(application_name=app_name)
     app_profile.set_value_from_dict(app_profile_dict=app_profile_dict)

@@ -4,11 +4,11 @@ import datetime
 import logging
 import time
 import traceback
-from pprint import pprint
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Union, Set
 
 import psutil
 
+import wades_config
 from paths import LOGGER_DIR_PATH, LOGGER_TEST_DIR_PATH
 from src.main.common.AppProfile import AppProfile
 from src.main.common.Daemon import Daemon
@@ -21,17 +21,15 @@ from wades_config import retrieval_periodicity_sec, max_retrieval_periodicity_se
 
 class ProcessHandler(Daemon):
 
-    def __init__(self, logger_name: str = "ProcessHandler", is_test: bool = False):
+    def __init__(self, logger_name: str = "ProcessHandler"):
         """
         Abstracts the daemon that collects information about the running processes.
         :param logger_name: The name of the logger.
         :type logger_name: str
-        :param is_test: Flag for checking if this is called by a test. It changes the log path according to the value.
-        :type is_test: bool
         """
-        self.__logger_base_dir = LOGGER_DIR_PATH if not is_test else LOGGER_TEST_DIR_PATH
+        self.__detected_app_profile_names = set()
+        self.__logger_base_dir = LOGGER_DIR_PATH if not wades_config.is_test else LOGGER_TEST_DIR_PATH
         self.__logger_name = logger_name
-        self.__registered_app_profiles = dict()
         self.__latest_retrieval_time = None
         self.__attrs_to_retrieve = [enum.name for enum in ProcessAttribute if enum.name != 'children_count']
 
@@ -45,35 +43,13 @@ class ProcessHandler(Daemon):
         """
         return self.__latest_retrieval_time
 
-    def get_registered_app_profiles_as_dict(self) -> Dict[str, AppProfile]:
+    def get_registered_app_profile_names(self) -> Set[str]:
         """
-        Gets the registered AppProfiles as a dictionary.
-        Format:
-            {
-                application_name: app_profile_1,
-                application_name_2: app_profile_2,
-                ...
-            }
-        :return: The registered AppProfiles as a dictionary.
-        :rtype: Dict[str, AppProfile]
+        Gets the registered AppProfiles as a set.
+        :return: The registered AppProfiles as a set.
+        :rtype: List[str]
         """
-        return copy.deepcopy(self.__registered_app_profiles)
-
-    def get_registered_app_profiles_list(self) -> List[AppProfile]:
-        """
-        Gets the registered AppProfiles as a list.
-        :return: The registered AppProfiles as a list.
-        :rtype: List[AppProfile]
-        """
-        return list(self.__registered_app_profiles.values())
-
-    def get_registered_application_names(self) -> Set[str]:
-        """
-        Gets the name of the registered applications.
-        :return: The name of the registered applications.
-        :rtype: Set[str]
-        """
-        return set(self.__registered_app_profiles.keys())
+        return copy.deepcopy(self.__detected_app_profile_names)
 
     def __collect_running_processes_and_group_by_application(self) -> Dict[str, list]:
         """
@@ -138,7 +114,8 @@ class ProcessHandler(Daemon):
 
         return processes_list
 
-    def __add_processes_to_application_profile(self, application_name: str, application_processes: List[dict]) -> None:
+    def __add_processes_to_application_profile_and_save(self, application_name: str, application_processes: List[dict]) \
+            -> None:
         """
         Adds the process information to its respective application profile.
         :raises TypeError if application_name is not of type 'str' or application_processes is not pf type 'List[dict]'.
@@ -153,6 +130,10 @@ class ProcessHandler(Daemon):
         if not isinstance(application_processes, list):
             raise TypeError(expected_type_but_received_message.format("application_processes", 'List[dict]',
                                                                       application_processes))
+        saved_app_profile = AppProfileDataManager.get_saved_profile(application_name)
+        if saved_app_profile is None:
+            saved_app_profile = AppProfile(application_name=application_name)
+
         for process in application_processes:
             if not isinstance(process, dict):
                 raise TypeError(expected_type_but_received_message.format("application_processes", 'List[dict]',
@@ -161,10 +142,6 @@ class ProcessHandler(Daemon):
             if process_name != application_name:
                 raise ValueError(expected_application_message.format(application_name, process_name))
 
-            if process_name not in self.__registered_app_profiles.keys():
-                self.__registered_app_profiles[process_name] = AppProfile(application_name=process_name)
-
-            app_profile = self.__registered_app_profiles[process_name]
             rss_memory = process[ProcessAttribute.memory_info.name].rss
             children_count = process[ProcessAttribute.children_count.name]
             users = [process[ProcessAttribute.username.name]] if process[ProcessAttribute.username.name] is not None \
@@ -174,10 +151,12 @@ class ProcessHandler(Daemon):
             cpu_percentage = process[ProcessAttribute.cpu_percent.name]
             num_threads = process[ProcessAttribute.num_threads.name]
             connections_num = process[ProcessAttribute.connections.name]
-            app_profile.add_new_information(memory_usage=rss_memory, child_processes_count=children_count, users=users,
-                                            open_files=open_files, cpu_percentage=cpu_percentage,
-                                            data_retrieval_timestamp=self.__latest_retrieval_time,
-                                            threads_number=num_threads, connections_num=connections_num)
+            saved_app_profile.add_new_information(memory_usage=rss_memory, child_processes_count=children_count,
+                                                  users=users,
+                                                  open_files=open_files, cpu_percentage=cpu_percentage,
+                                                  data_retrieval_timestamp=self.__latest_retrieval_time,
+                                                  threads_number=num_threads, connections_num=connections_num)
+        AppProfileDataManager.save_app_profile(saved_app_profile)
 
     def collect_running_processes_information(self) -> None:
         """
@@ -186,38 +165,25 @@ class ProcessHandler(Daemon):
         logger = logging.getLogger(self.__logger_name)
         logger.info("Started retrieving running processes information.")
         app_name_to_processes_map = self.__collect_running_processes_and_group_by_application()
+        self.__detected_app_profile_names = set(app_name_to_processes_map.keys())
         for app_name, processes in app_name_to_processes_map.items():
-            self.__add_processes_to_application_profile(application_name=app_name,
-                                                        application_processes=processes)
+            self.__add_processes_to_application_profile_and_save(application_name=app_name,
+                                                                 application_processes=processes)
+        AppProfileDataManager.save_last_retrieved_data_timestamp(self.__latest_retrieval_time)
         logger.info("Finished retrieving running processes information.")
-
-    def __exit_handler(self) -> None:
-        """
-        This is called when the Daemon exits.
-        """
-        AppProfileDataManager.save_app_profiles(self.get_registered_app_profiles_list(),
-                                                retrieval_timestamp=self.__latest_retrieval_time)
 
     def run(self) -> None:
         """
         Starts the process handler as a daemon.
         """
-        atexit.register(self.__exit_handler, self)
         LoggerUtils.setup_logger(self.__logger_name, self.__logger_base_dir / (self.__logger_name + log_file_extension))
         logger = logging.getLogger(self.__logger_name)
         while True:
             # noinspection PyBroadException
             try:
-                saved_app_profiles = AppProfileDataManager.get_saved_profiles()
-                self.__registered_app_profiles = \
-                    {app_profile.get_application_name(): app_profile for app_profile in saved_app_profiles}
-
                 self.collect_running_processes_information()
-                AppProfileDataManager.save_app_profiles(app_profiles=self.get_registered_app_profiles_list(),
-                                                        retrieval_timestamp=self.__latest_retrieval_time)
                 sleep_time = retrieval_periodicity_sec \
                     if retrieval_periodicity_sec <= max_retrieval_periodicity_sec else max_retrieval_periodicity_sec
                 time.sleep(sleep_time)
             except Exception:
                 logger.error(traceback.format_exc())
-
