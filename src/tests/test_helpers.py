@@ -1,50 +1,7 @@
-from typing import Dict, Set, List
+from typing import Dict, Set, List, Any
 
 from src.main.common.AppProfile import AppProfile
 from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
-
-
-def build_application_profile_list(app_profiles_dict: Dict[str, dict], application_names: Set[str] = None) \
-        -> List[AppProfile]:
-    """
-    Helper method for converting application profiles as dict forms to ApplicationProfile objects.
-    :param app_profiles_dict: All application profiles.
-        Format:
-            {
-                "Some name": {
-                    app_name: "Some name",
-                    date_created_timestamp: "2020-12-12 14:30:32:34.232",
-                    usernames: [user_1, user_2, ...]
-                    memory_infos: [2342, 23215, 31573, ...],
-                    opened_files:
-                        {
-                            timestamp_1 : {
-                                path_1: [permission_1, permission_2, ...],
-                                ...
-                            },
-                            ...
-                        },
-                    cpu_percents: [0.2, 13.9, ...],
-                    children_counts: [1, 5, 0, 4, ...]
-                    data_retrieval_timestamps: [timestamp_1, timestamp_2, ...],
-                    threads_numbers:[0, 1, 3, 9, ...],
-                    connections_numbers:[0, 1, 3, 9, ...]
-                },
-                ...
-            }
-    :type app_profiles_dict: Dict[str, dict]
-    :param application_names: The name of the application profiles to convert to AppProfile objects.
-    :type application_names: Set[str]
-    :return: A list of application profiles.
-    :rtype: List[AppProfile]
-    """
-    app_profiles = list()
-    app_names_to_use = application_names if application_names is not None else app_profiles_dict.keys()
-    for application_name in app_names_to_use:
-        app_profile = AppProfile(application_name=application_name)
-        app_profile.set_value_from_dict(app_profiles_dict[application_name])
-        app_profiles.append(app_profile)
-    return app_profiles
 
 
 # noinspection DuplicatedCode

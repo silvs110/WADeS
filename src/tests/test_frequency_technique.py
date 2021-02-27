@@ -3,13 +3,14 @@ from typing import Dict
 
 import pytest
 
+import paths
 import wades_config
 from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
 from src.main.common.enum.AppSummaryAttribute import AppSummaryAttribute
 from src.main.common.enum.RiskLevel import RiskLevel
+from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
 from wades_config import anomaly_detected_message
 from src.main.modeller.FrequencyTechnique import FrequencyTechnique
-from src.tests.test_helpers import build_application_profile_list
 
 """
 This file contains test for FrequencyTechnique class.
@@ -132,19 +133,16 @@ def test_execute_frequency_modelling_with_invalid_inputs() -> None:
                          ]
                          )
 @pytest.mark.usefixtures('setup_and_clean_up_modelling_requirements')
-def test_execute_frequency_modelling_with_anomalies(saved_test_app_profiles_dict: Dict[str, dict],
-                                                    modelling_test_scenario: AppModellingTestScenario) -> None:
+def test_execute_frequency_modelling_with_anomalies(modelling_test_scenario: AppModellingTestScenario) -> None:
     """
     Test modelling the application profiles using the frequency technique.
-    :param saved_test_app_profiles_dict: The retrieved test application profiles.
-    :type saved_test_app_profiles_dict: Dict[str, dict]
     :param modelling_test_scenario: The modelling test scenarios.
     :type modelling_test_scenario: AppModellingTestScenario
     """
-    app_profiles = build_application_profile_list(app_profiles_dict=saved_test_app_profiles_dict,
-                                                  application_names={modelling_test_scenario.app_name})
+    app_profile = AppProfileDataManager.get_saved_profile(modelling_test_scenario.app_name,
+                                                          paths.SAMPLE_APP_PROF_DATA_PATH)
     fq = FrequencyTechnique()
-    app_summaries = fq(data=app_profiles)
+    app_summaries = fq(data=[app_profile])
 
     assert len(app_summaries) == 1
     app_summary = app_summaries[0]

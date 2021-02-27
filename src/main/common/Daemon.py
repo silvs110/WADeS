@@ -6,14 +6,13 @@ import psutil
 from daemon import DaemonContext, pidfile
 
 from paths import WADES_DIR_PATH, PID_FILES_DIR_PATH
-from src.main.common.LoggerUtils import LoggerUtils
 from src.utils.error_messages import method_not_implemented_error_message
 from wades_config import pid_file_extension, log_file_extension
 
 
 class Daemon:
 
-    def __init__(self,daemon_name: str) -> None:
+    def __init__(self, daemon_name: str) -> None:
         """
         Initializes the class using a logger and daemon name.
         :param daemon_name: The name of the daemon.

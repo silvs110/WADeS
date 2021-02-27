@@ -2,159 +2,245 @@ import ast
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Any, Set
 
 import pandas
+from pandas import DataFrame
 
 import paths
+import wades_config
 from src.main.common.AppProfile import AppProfile
 from src.main.common.AppSummary import AppSummary
 from src.main.common.enum.AppProfileAttribute import AppProfileAttribute
 from src.main.common.enum.AppSummaryAttribute import AppSummaryAttribute
-from src.utils.error_messages import expected_type_but_received_message, file_support_type_error_message
+from src.utils.error_messages import expected_type_but_received_message
 from wades_config import app_profile_retrieval_chunk_size, datetime_format
 
 
 class AppProfileDataManager:
-    __default_app_profiles_file = paths.APP_PROF_DATA_FILE_PATH
+    __path_to_use = paths.TEST_APP_PROF_DATA_DIR_PATH if wades_config.is_test else paths.APP_PROF_DATA_DIR_PATH
     __supported_file_extensions = [".csv"]
     __column_names = [attr.name for attr in AppProfileAttribute]  # Order is important
-    __default_retrieval_timestamp_file = paths.RETRIEVAL_TIMESTAMP_FILE_PATH
-    __default_abnormal_apps_file = paths.APP_ANOM_FILE_PATH
+    __default_retrieval_timestamp_file = __path_to_use / wades_config.retrieval_timestamp_file_name
+    __default_abnormal_apps_file = __path_to_use / wades_config.abnormal_apps_file_name
 
     @staticmethod
-    def get_saved_profiles(app_profile_file: Union[str, Path] = __default_app_profiles_file) -> List[AppProfile]:
+    def get_saved_profile(app_profile_name: str, base_path: Path = __path_to_use) -> Union[AppProfile, None]:
         """
         Retrieves the saved profiles from the provided app_profile_file.
         If no app_profile_file value is specified, it uses the default file, defined in `paths.py`.
         :raises TypeError if app_profile_file is not of type 'str' or 'pathlib.Path'.
-        :raises ValueError if the file extension of the path is not supported.
-        :param app_profile_file: The path of the file to save the application profiles.
-        :type app_profile_file: Union[str, pathlib.Path]
+        :param app_profile_name: The name of the application profile to retrieve.
+        :type app_profile_name: str
+        :param base_path: The base path to get the application profile from.
+        :type base_path: pathlib.Path
         :return: a list of AppProfiles.
-        :rtype: List[AppProfile]
+        :rtype: Union[AppProfile, None]
         """
 
-        AppProfileDataManager.__validate_path(app_profile_file)
-        app_profiles = list()
+        app_profile_dict = AppProfileDataManager.get_saved_profile_as_dict(app_profile_name, base_path)
+        if app_profile_dict is None:
+            return None
+        app_profile = AppProfile(application_name=app_profile_name)
+        app_profile.set_value_from_dict(app_profile_dict=app_profile_dict)
 
-        app_profiles_dict = AppProfileDataManager.get_saved_profiles_as_dict(app_profile_file=app_profile_file)
-
-        for app_name, app_profile_dict in app_profiles_dict.items():
-            app_profile = AppProfile(application_name=app_name)
-            app_profile.set_value_from_dict(app_profile_dict=app_profile_dict)
-            app_profiles.append(app_profile)
-
-        return app_profiles
+        return app_profile
 
     @staticmethod
-    def save_app_profiles(app_profiles: List[AppProfile], retrieval_timestamp: datetime = None,
-                          app_profile_file_path: Union[str, Path] = __default_app_profiles_file,
-                          retrieval_timestamp_file_path: Union[str, Path] = __default_retrieval_timestamp_file) -> None:
+    def save_app_profiles(app_profiles: List[AppProfile], retrieval_timestamp: datetime,
+                          app_profile_base_dir: Path = __path_to_use,
+                          retrieval_timestamp_file_path: Path = __default_retrieval_timestamp_file) -> None:
         """
-        Saves the appProfile in the file specified by app_profile_file.
+        Saves the appProfiles in the file specified by app_profile_file.
         If no app_profile_file value is provided, it uses the default file, defined in `paths.py`
         :raises TypeError if app_profiles is not of type 'List[AppProfile]',
-                or if app_profile_file is not of type 'str' or 'pathlib.Path'.
-        :raises ValueError if the file extension of the path is not supported.
+                or if app_profile_base_dir or retrieval_timestamp_file_path are not of type 'pathlib.Path',
+                or if retrieval_timestamp is not of type 'datetime'.
         :param app_profiles: The list of AppProfiles to save.
         :type app_profiles: List[AppProfile]
         :param retrieval_timestamp: The latest retrieval timestamp of the AppProfile objects.
         :type retrieval_timestamp: datetime
-        :param app_profile_file_path: The path of file to save the application profiles.
-        :type app_profile_file_path: Union[str, pathlib.Path]
+        :param app_profile_base_dir: The base directory of app profiles files.
+        :type app_profile_base_dir: pathlib.Path
         :param retrieval_timestamp_file_path: The path of the file to save the retrieval timestamp.
         :type retrieval_timestamp_file_path: Union[str, pathlib.Path]
         """
         if not isinstance(app_profiles, list):
             raise TypeError(expected_type_but_received_message.format("app_profiles", "List[AppProfile]", app_profiles))
 
-        AppProfileDataManager.__validate_path(app_profile_file_path)
+        if not isinstance(app_profile_base_dir, Path):
+            raise TypeError(expected_type_but_received_message.format("app_profile_base_dir",
+                                                                      "pathlib.Path",
+                                                                      app_profile_base_dir))
 
-        app_profile_list = list()
+        if not isinstance(retrieval_timestamp, datetime):
+            raise TypeError(expected_type_but_received_message.format("retrieval_timestamp", "datetime",
+                                                                      retrieval_timestamp))
+
+        if not isinstance(retrieval_timestamp_file_path, Path):
+            raise TypeError(expected_type_but_received_message.format("retrieval_timestamp_file_path",
+                                                                      "pathlib.Path",
+                                                                      retrieval_timestamp_file_path))
+
         for app_profile in app_profiles:
-
+            AppProfileDataManager.save_app_profile(app_profile, app_profile_base_dir)
             if not isinstance(app_profile, AppProfile):
                 raise TypeError(
                     expected_type_but_received_message.format("app_profiles", "List[AppProfile]", app_profiles))
 
-            app_profile_dict = app_profile.dict_format()
-            app_profile_list.append(app_profile_dict)
-
-        data_frame = pandas.DataFrame(app_profile_list, columns=AppProfileDataManager.__column_names)
-        data_frame.to_csv(app_profile_file_path, index=False)
-
-        if retrieval_timestamp is not None:
-            with open(retrieval_timestamp_file_path, "w") as file:
-                file.write(retrieval_timestamp.strftime(datetime_format))
+        AppProfileDataManager.save_last_retrieved_data_timestamp(retrieval_timestamp, retrieval_timestamp_file_path)
 
     @staticmethod
-    def get_saved_profiles_as_dict(app_profile_file: Union[str, Path] = __default_app_profiles_file) \
-            -> Dict[str, dict]:
+    def save_app_profile(app_profile: AppProfile, base_path: Path = __path_to_use) -> None:
+        """
+        Save an application profile in the specified base directory.
+        :raises TypeError if app_profile is not of type 'AppProfile',
+            or if base_path is not of type 'pathlib.Path'.
+        :param app_profile: The application profile to save.
+        :type app_profile: AppProfile
+        :param base_path: The base path to save the application profile.
+            It defaults to values paths.APP_PROF_DATA_DIR_PATH if is not running as a test and to
+            paths.TEST_APP_PROF_DATA_DIR_PATH if it is.
+        :type base_path: pathlib.Path
+        """
+        if not isinstance(app_profile, AppProfile):
+            raise TypeError(expected_type_but_received_message.format("app_profile", "AppProfile", app_profile))
+
+        if not isinstance(base_path, Path):
+            raise TypeError(expected_type_but_received_message.format("base_path", "pathlib.Path", base_path))
+
+        app_profile_file_path = AppProfileDataManager.__get_app_profile_file_path(
+            app_profile_name=app_profile.get_application_name(), base_path=base_path)
+
+        app_profile_dict = app_profile.dict_format()
+        data_frame = pandas.DataFrame([app_profile_dict], columns=AppProfileDataManager.__column_names)
+        data_frame.to_csv(app_profile_file_path, index=False)
+
+    @staticmethod
+    def __get_app_profile_file_path(app_profile_name: str, base_path: Path = __path_to_use) -> Path:
+        """
+        Gets the App Profile file path.
+        :param app_profile_name: The name of the app profile.
+        :type app_profile_name: str
+        :param base_path: The base path to save the application profile.
+            It defaults to values paths.APP_PROF_DATA_DIR_PATH if is not running as a test and to
+            paths.TEST_APP_PROF_DATA_DIR_PATH if it is.
+        :type base_path: pathlib.Path
+        :return: The file path of the App profile.
+        :rtype: pathlib.Path
+        """
+        if not isinstance(base_path, Path):
+            raise TypeError(expected_type_but_received_message.format("base_path", "pathlib.Path", base_path))
+
+        mapping_path = base_path / wades_config.app_profile_file_names_map
+        data_frame = AppProfileDataManager.__get_saved_app_profiles_file_names_mapping_dataframe(base_path)
+        matching_index = data_frame.index[data_frame[AppProfileAttribute.app_name.name] == app_profile_name].tolist()
+        if len(matching_index) == 0:
+            data_frame = data_frame.append({AppProfileAttribute.app_name.name: app_profile_name}, ignore_index=True)
+            data_frame.to_csv(mapping_path)
+        matching_index = data_frame.index[data_frame[AppProfileAttribute.app_name.name] == app_profile_name].tolist()
+        index = matching_index[0]
+        file_name = f"{index}.csv"
+        return base_path / file_name
+
+    @staticmethod
+    def __get_saved_app_profiles_file_names_mapping_dataframe(base_path: Path = __path_to_use) -> DataFrame:
+        """
+        Get the dataframe containing the list of saved application names and their respective file names.
+        :param base_path: The base path where to retrieve the application profile names.
+            It defaults to values paths.APP_PROF_DATA_DIR_PATH if is not running as a test and to
+            paths.TEST_APP_PROF_DATA_DIR_PATH if it is.
+        :type base_path: pathlib.Path
+        :return: The dataframe containing the list of saved application names and their respective file names.
+        :rtype: pandas.DataFrame
+        """
+
+        if not isinstance(base_path, Path):
+            raise TypeError(expected_type_but_received_message.format("base_path", "pathlib.Path", base_path))
+
+        mapping_path = base_path / wades_config.app_profile_file_names_map
+        if not mapping_path.exists():
+            data_frame = pandas.DataFrame(columns=[AppProfileAttribute.app_name.name])
+            data_frame.to_csv(mapping_path, index=True)
+        return pandas.read_csv(mapping_path, index_col=0)
+
+    @staticmethod
+    def get_saved_app_profiles_names(base_path: Path = __path_to_use) -> Set[str]:
+        """
+        Gets the names of the saved application profiles.
+        :param base_path: The base path where to retrieve the application profile names.
+            It defaults to values paths.APP_PROF_DATA_DIR_PATH if is not running as a test and to
+            paths.TEST_APP_PROF_DATA_DIR_PATH if it is.
+        :type base_path: pathlib.Path
+        :return: The names of the saved application profiles.
+        :rtype: Set[str]
+        """
+        dataframe = AppProfileDataManager.__get_saved_app_profiles_file_names_mapping_dataframe(base_path)
+        return set(dataframe[AppProfileAttribute.app_name.name].to_list())
+
+    @staticmethod
+    def get_saved_profile_as_dict(app_profile_name: str, base_path: Path = __path_to_use) \
+            -> Union[Dict[str, Any], None]:
         """
         Retrieves the saved profiles from the provided app_profile_file.
         If no app_profile_file value is specified, it uses the default file, defined in `paths.py`.
-        :raises TypeError if app_profile_file is not of type 'str' or 'pathlib.Path'.
-        :raises ValueError if the file extension of the path is not supported.
-        :param app_profile_file: The path of the file to save the application profiles.
-        :type app_profile_file: Union[str, pathlib.Path]
+        :raises TypeError if app_profile_name is not of type 'str',
+            or if base_path is not of type 'pathlib.Path'.
+        :param app_profile_name: The name of the application profile to retrieve.
+        :type app_profile_name: str
+        :param base_path: The base directory to find the application profile.
+        :type base_path: Path
         :return: A dictionary of the application profile names to their respective AppProfile information.
-        :rtype: Dict[str, dict]
+        :rtype: Union[Dict[str, Any], None]
         """
 
-        AppProfileDataManager.__validate_path(app_profile_file)
+        if not isinstance(app_profile_name, str):
+            raise TypeError(expected_type_but_received_message.format("app_profile_name", str, app_profile_name))
 
-        app_profiles = dict()
+        app_profile_file_path = AppProfileDataManager.__get_app_profile_file_path(app_profile_name,
+                                                                                  base_path)
         try:
-            for batch in pandas.read_csv(app_profile_file, chunksize=app_profile_retrieval_chunk_size):
-                dataframe_values = batch.values.tolist()
-                for app_profile_info_str_format in dataframe_values:
-                    app_profile_info = []
+            values_raw = pandas.read_csv(app_profile_file_path)
+            dataframe_values = values_raw.values.tolist()
+            for app_profile_info_str_format in dataframe_values:
+                app_profile_info = []
 
-                    for i in range(0, len(app_profile_info_str_format)):
-                        attribute = app_profile_info_str_format[i]
-                        if i > 1:
-                            attribute = ast.literal_eval(attribute)
+                for i in range(0, len(app_profile_info_str_format)):
+                    attribute = app_profile_info_str_format[i]
+                    if i > 1:
+                        attribute = ast.literal_eval(attribute)
 
-                        app_profile_info.append(attribute)
-                    app_profile_zip = zip(AppProfileDataManager.__column_names, app_profile_info)
-                    app_profile = dict(app_profile_zip)
-                    app_name = app_profile_info_str_format[0]
-                    app_profiles[app_name] = app_profile
+                    app_profile_info.append(attribute)
+                app_profile_zip = zip(AppProfileDataManager.__column_names, app_profile_info)
+                return dict(app_profile_zip)
         except FileNotFoundError:
-            pass
-
-        return app_profiles
+            return
 
     @staticmethod
-    def __validate_path(app_profile_file: Union[str, Path]) -> None:
+    def save_last_retrieved_data_timestamp(retrieval_timestamp: datetime,
+                                           retrieval_timestamp_file_path: Path = __default_retrieval_timestamp_file) \
+            -> None:
         """
-        Validates that the application profile file has a supported file extension.
-        :raises TypeError if app_profile_file is not of type 'str' or 'pathlib.Path'.
-        :raises ValueError if the file extension of the path is not supported.
-        :param app_profile_file: The path of the file to save the application profiles.
-        :type app_profile_file: Union[str, pathlib.Path]
+        Save the last retrieved timestamp in the specified directory.
+        :raises TypeError if retrieval_timestamp is not of type 'datetime',
+            or if retrieval_timestamp_file_path is not of type 'pathlib.Path'.
+        :param retrieval_timestamp: The retrieved timestamp to save.
+        :type retrieval_timestamp: datetime
+        :param retrieval_timestamp_file_path: The path of the file where the retrieval timestamp is saved.
+        :type retrieval_timestamp_file_path: pathlib.Path
         """
-        if not isinstance(app_profile_file, (str, Path)):
-            raise TypeError(
-                expected_type_but_received_message.format(
-                    "app_profile_file",
-                    "Union[str, pathlib.Path]",
-                    app_profile_file
-                )
-            )
 
-        if isinstance(app_profile_file, Path):
-            app_profile_file = str(app_profile_file.absolute())
+        if not isinstance(retrieval_timestamp_file_path, Path):
+            raise TypeError(expected_type_but_received_message.format("retrieval_timestamp_file_path",
+                                                                      "pathlib.Path",
+                                                                      retrieval_timestamp_file_path))
 
-        if not any(app_profile_file.endswith(extension)
-                   for extension in AppProfileDataManager.__supported_file_extensions):
-            raise ValueError(
-                file_support_type_error_message.format(
-                    AppProfileDataManager.__supported_file_extensions,
-                    app_profile_file
-                )
-            )
+        if not isinstance(retrieval_timestamp, datetime):
+            raise TypeError(expected_type_but_received_message.format("retrieval_timestamp", "datetime",
+                                                                      retrieval_timestamp))
+
+        with open(AppProfileDataManager.__default_retrieval_timestamp_file, "w") as file:
+            file.write(retrieval_timestamp.strftime(datetime_format))
 
     @staticmethod
     def get_last_retrieved_data_timestamp(retrieval_timestamp_file_path: Union[str, Path]
@@ -169,8 +255,8 @@ class AppProfileDataManager:
         try:
             with open(retrieval_timestamp_file_path, "r") as file:
                 data = file.read()
-
                 return datetime.strptime(data, datetime_format)
+
         except (FileNotFoundError, ValueError):
             return None
 
@@ -220,7 +306,7 @@ class AppProfileDataManager:
             abnormal_app_dict[data_retrieval_timestamp_name] = retrieval_timestamp
             abnormal_apps_parsed.append(abnormal_app_dict)
 
-        with_header = False if abnormal_apps_file_path.exists() else True
+        with_header = not abnormal_apps_file_path.exists()
         data_frame = pandas.DataFrame(abnormal_apps_parsed, columns=abnormal_app_columns)
         data_frame.to_csv(abnormal_apps_file_path, index=False, mode='a+', header=with_header)
 
