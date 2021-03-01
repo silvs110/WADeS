@@ -1,23 +1,15 @@
 wades_src_path="/home/silvia/wades"
 run_path="/var/lib/wades/run"
-ps_handler_file_path="${run_path}/ProcessHandler.pid"
-modeller_file_path="${run_path}/Modeller.pid"
+wades_daemon_file_path="${run_path}/WadesDaemon.pid"
 
 
 
 while true
   do
-    if [ ! -f "${ps_handler_file_path}" ]
+    if [ ! -f "${wades_daemon_file_path}" ]
     then
-      echo $(date -u): ps_handler is not running. Rerunning it.
-      sudo python3 "${wades_src_path}/pshandler_starter.py"
-      sleep 5s
-    fi
-
-    if [ ! -f "${modeller_file_path}" ]
-    then
-      echo $(date -u): modeller is not running. Rerunning it.
-      sudo python3 "${wades_src_path}/modeller_starter.py"
+      echo "$(date -u): wades daemon is not running. Rerunning it."
+      sudo python3 "${wades_src_path}/wades" start
       sleep 5s
     fi
 
