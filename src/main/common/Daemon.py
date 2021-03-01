@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 from typing import Union
 
 import psutil
@@ -7,7 +6,7 @@ from daemon import DaemonContext, pidfile
 
 from paths import WADES_DIR_PATH, PID_FILES_DIR_PATH
 from src.utils.error_messages import method_not_implemented_error_message
-from wades_config import pid_file_extension, log_file_extension
+from wades_config import pid_file_extension
 
 
 class Daemon:

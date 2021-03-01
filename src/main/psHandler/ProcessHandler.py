@@ -1,25 +1,18 @@
-import atexit
 import copy
 import datetime
 import logging
 import time
-import traceback
 from typing import Dict, List, Union, Set
 
 import psutil
 
-import wades_config
-from paths import LOGGER_DIR_PATH, LOGGER_TEST_DIR_PATH
 from src.main.common.AppProfile import AppProfile
-from src.main.common.Daemon import Daemon
-from src.main.common.LoggerUtils import LoggerUtils
 from src.main.common.enum.ProcessAttribute import ProcessAttribute
 from src.main.psHandler.AppProfileDataManager import AppProfileDataManager
 from src.utils.error_messages import expected_type_but_received_message, expected_application_message
-from wades_config import retrieval_periodicity_sec, max_retrieval_periodicity_sec, log_file_extension
 
 
-class ProcessHandler(Daemon):
+class ProcessHandler:
 
     def __init__(self, logger_name: str = "ProcessHandler"):
         """
@@ -28,12 +21,9 @@ class ProcessHandler(Daemon):
         :type logger_name: str
         """
         self.__detected_app_profile_names = set()
-        self.__logger_base_dir = LOGGER_DIR_PATH if not wades_config.is_test else LOGGER_TEST_DIR_PATH
         self.__logger_name = logger_name
         self.__latest_retrieval_time = None
         self.__attrs_to_retrieve = [enum.name for enum in ProcessAttribute if enum.name != 'children_count']
-
-        super(ProcessHandler, self).__init__(logger_name)
 
     def get_latest_retrieved_data_timestamp(self) -> Union[None, datetime.datetime]:
         """
@@ -114,8 +104,8 @@ class ProcessHandler(Daemon):
 
         return processes_list
 
-    def __add_processes_to_application_profile_and_save(self, application_name: str, application_processes: List[dict]) \
-            -> None:
+    def __add_processes_to_application_profile_and_save(self, application_name: str,
+                                                        application_processes: List[dict]) -> None:
         """
         Adds the process information to its respective application profile.
         :raises TypeError if application_name is not of type 'str' or application_processes is not pf type 'List[dict]'.
@@ -170,20 +160,17 @@ class ProcessHandler(Daemon):
             self.__add_processes_to_application_profile_and_save(application_name=app_name,
                                                                  application_processes=processes)
         AppProfileDataManager.save_last_retrieved_data_timestamp(self.__latest_retrieval_time)
-        logger.info("Finished retrieving running processes information.")
 
-    def run(self) -> None:
+    @staticmethod
+    def is_application_recently_retrieved(app_profile: AppProfile) -> bool:
         """
-        Starts the process handler as a daemon.
+        Checks if the application profile provided was recently retrieved.
+        :param app_profile: The application profile to check.
+        :type app_profile: AppProfile
+        :return: True if the application profile was recently retrieved, False otherwise.
+        :rtype: bool
         """
-        LoggerUtils.setup_logger(self.__logger_name, self.__logger_base_dir / (self.__logger_name + log_file_extension))
-        logger = logging.getLogger(self.__logger_name)
-        while True:
-            # noinspection PyBroadException
-            try:
-                self.collect_running_processes_information()
-                sleep_time = retrieval_periodicity_sec \
-                    if retrieval_periodicity_sec <= max_retrieval_periodicity_sec else max_retrieval_periodicity_sec
-                time.sleep(sleep_time)
-            except Exception:
-                logger.error(traceback.format_exc())
+        latest_retrieval_timestamp = AppProfileDataManager.get_last_retrieved_data_timestamp()
+        retrieval_timestamps = app_profile.get_data_retrieval_timestamps()
+        app_profile_last_retrieved_data_timestamp = retrieval_timestamps[-1]
+        return latest_retrieval_timestamp == app_profile_last_retrieved_data_timestamp
