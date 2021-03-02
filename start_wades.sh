@@ -9,7 +9,7 @@ while true
     if [ ! -f "${wades_daemon_file_path}" ]
     then
       echo "$(date -u): wades daemon is not running. Rerunning it."
-      sudo python3 "${wades_src_path}/wades" start
+      sudo python3 "${wades_src_path}/wades.py" start
       sleep 5s
     fi
 
